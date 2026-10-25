@@ -38,7 +38,7 @@
         "następnie przez łącznik wjeżdża na tor 63"
       ],
       "actions": [
-        { "type": "driveTo", "vehicle": "LOK1", "edge": "e3E", "offset": 40 },
+        { "type": "driveTo", "vehicle": "LOK1", "edge": "e3E", "offset": 50 },
         { "type": "setSwitch", "switch": "S2", "state": 1 },
         { "type": "setSwitch", "switch": "X1", "state": 0 },
         { "type": "setSwitch", "switch": "S1", "state": 1 },
