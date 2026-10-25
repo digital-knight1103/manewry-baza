@@ -6,3 +6,6 @@ export const OUTLINE_COLOR = '#0F2F3F';
 export const LABEL_FONT = "'Segoe UI', Calibri, Arial, sans-serif";
 export const LABEL_SIZE = 16;
 export const ROUTE_HIGHLIGHT = '#FFC400';
+export const VEHICLE_HEIGHT = 20;
+export const VEHICLE_STROKE = 1.2;
+export const SELECTION_COLOR = '#FFC400';

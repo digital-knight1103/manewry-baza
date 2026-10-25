@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { stationLayout } from '../../data/station';
 import { buildTopology } from '../../engine/topology';
-import { edgeStub, railLines } from './railGeometry';
+import { bandOutline, edgeStub, railLines } from './railGeometry';
 
 const topo = buildTopology(stationLayout);
 
@@ -36,5 +36,23 @@ describe('edgeStub', () => {
       { x: 370, y: 213 },
       { x: 340, y: 213 },
     ]);
+  });
+});
+
+describe('bandOutline', () => {
+  it('builds a rectangle around a straight centreline', () => {
+    expect(bandOutline([{ x: 0, y: 0 }, { x: 10, y: 0 }], 2)).toEqual([
+      { x: 0, y: 2 },
+      { x: 10, y: 2 },
+      { x: 10, y: -2 },
+      { x: 0, y: -2 },
+    ]);
+  });
+
+  it('mitres bends', () => {
+    const outline = bandOutline([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }], 1);
+    expect(outline).toHaveLength(6);
+    expect(outline[1]!.x).toBeCloseTo(9);
+    expect(outline[1]!.y).toBeCloseTo(1);
   });
 });

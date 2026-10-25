@@ -18,15 +18,15 @@
     { "id": "N3E",  "x": 990, "y": 333, "type": "exit" }
   ],
   "edges": [
-    { "id": "e63",  "track": "63",      "from": "N63W", "to": "S1" },
-    { "id": "e65",  "track": "65",      "from": "S1",   "to": "N65E" },
-    { "id": "eD1",  "track": "łącznik", "from": "S1",   "to": "X1" },
-    { "id": "eD2",  "track": "łącznik", "from": "X1",   "to": "S2" },
-    { "id": "e67",  "track": "67",      "from": "N67W", "to": "X1" },
-    { "id": "e67b", "track": "67",      "from": "X1",   "to": "H1" },
-    { "id": "e69",  "track": "69",      "from": "H1",   "to": "N69E" },
-    { "id": "e3W",  "track": "3",       "from": "N3W",  "to": "S2" },
-    { "id": "e3E",  "track": "3",       "from": "S2",   "to": "N3E" }
+    { "id": "e63",  "name": "tor 63", "track": "63",      "from": "N63W", "to": "S1" },
+    { "id": "e65",  "name": "tor 65", "track": "65",      "from": "S1",   "to": "N65E" },
+    { "id": "eD1",  "name": "łącznik (63–67)", "track": "łącznik", "from": "S1",   "to": "X1" },
+    { "id": "eD2",  "name": "łącznik (67–3)", "track": "łącznik", "from": "X1",   "to": "S2" },
+    { "id": "e67",  "name": "tor 67 (zachód)", "track": "67",      "from": "N67W", "to": "X1" },
+    { "id": "e67b", "name": "tor 67 (wschód)", "track": "67",      "from": "X1",   "to": "H1" },
+    { "id": "e69",  "name": "tor 69 (hala)", "track": "69",      "from": "H1",   "to": "N69E" },
+    { "id": "e3W",  "name": "tor 3 (zachód)", "track": "3",       "from": "N3W",  "to": "S2" },
+    { "id": "e3E",  "name": "tor 3 (wschód)", "track": "3",       "from": "S2",   "to": "N3E" }
   ],
   "boundaries": [
     { "node": "H1", "connections": [["e67b", "e69"]] }
@@ -70,17 +70,17 @@
     { "text": "tor 3",  "x": 42,  "y": 365 }
   ],
   "counters": [
-    { "track": "63", "x": 125, "y": 188 },
-    { "track": "65", "x": 672, "y": 180 },
-    { "track": "67", "x": 125, "y": 316 },
-    { "track": "69", "x": 775, "y": 316, "_uwaga": "na rysunku 1 licznik prawej części toru 67 + 69" }
+    { "edges": ["e63"], "x": 125, "y": 188 },
+    { "edges": ["e65"], "x": 672, "y": 180 },
+    { "edges": ["e67"], "x": 125, "y": 316 },
+    { "edges": ["e67b", "e69"], "x": 775, "y": 316, "_uwaga": "jak na rysunku 1: prawa część toru 67 razem z torem 69" }
   ],
   "vehicleTypes": [
-    { "id": "wagon_dlugo",  "name": "Wagon na naprawę długoterminową", "color": "#7B3A12", "lengthM": 15 },
-    { "id": "wagon_rev",    "name": "Wagon na naprawę REV",            "color": "#1F5F7F", "lengthM": 15 },
-    { "id": "wagon_zdrowy", "name": "Wagon zdrowy",                    "color": "#CDE8F6", "lengthM": 15 },
-    { "id": "platforma",    "name": "Platforma z zestawami",           "color": "#F2AA84", "lengthM": 30 },
-    { "id": "lokomotywa",   "name": "Lokomotywa",                      "color": "#4CD964", "lengthM": 25, "powered": true },
-    { "id": "shunter",      "name": "Shunter",                         "color": "#4CD964", "lengthM": 3,  "powered": true, "maxWagons": 4 }
+    { "id": "wagon_dlugo",  "idPrefix": "D", "name": "Wagon na naprawę długoterminową", "color": "#7B3A12", "lengthM": 15 },
+    { "id": "wagon_rev",    "idPrefix": "R", "name": "Wagon na naprawę REV",            "color": "#1F5F7F", "lengthM": 15 },
+    { "id": "wagon_zdrowy", "idPrefix": "Z", "name": "Wagon zdrowy",                    "color": "#CDE8F6", "lengthM": 15 },
+    { "id": "platforma",    "idPrefix": "PL", "name": "Platforma z zestawami",           "color": "#F2AA84", "lengthM": 30 },
+    { "id": "lokomotywa",   "idPrefix": "LOK", "name": "Lokomotywa",                      "color": "#4CD964", "lengthM": 25, "powered": true },
+    { "id": "shunter",      "idPrefix": "SH", "name": "Shunter",                         "color": "#4CD964", "lengthM": 3,  "powered": true, "maxWagons": 4 }
   ]
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatWagonCount } from './counters';
+import { formatCount, formatWagonCount, VEHICLE } from './counters';
 
 describe('formatWagonCount', () => {
   it.each([
@@ -17,5 +17,13 @@ describe('formatWagonCount', () => {
     [112, '112 wagonów'],
   ])('%i → %s', (n, text) => {
     expect(formatWagonCount(n)).toBe(text);
+  });
+});
+
+describe('formatCount', () => {
+  it('declines other nouns', () => {
+    expect(formatCount(1, VEHICLE)).toBe('1 pojazd');
+    expect(formatCount(3, VEHICLE)).toBe('3 pojazdy');
+    expect(formatCount(13, VEHICLE)).toBe('13 pojazdów');
   });
 });

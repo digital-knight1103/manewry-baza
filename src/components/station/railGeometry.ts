@@ -61,3 +61,26 @@ export function edgeStub(topo: Topology, edgeId: string, nodeId: string, stubLen
 
 export const toPath = (points: Point[]): string =>
   points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+
+/** Polyline offset sideways by `d` (positive = left normal), with mitred joints. */
+export function offsetPolyline(points: Point[], d: number): Point[] {
+  const lines = points.slice(1).map((b, i) => {
+    const a = points[i]!;
+    const u = normalize(sub(b, a));
+    return { p: add(a, scale(normal(u), d)), u };
+  });
+  const out: Point[] = [lines[0]!.p];
+  for (let i = 1; i < lines.length; i++) {
+    const prev = lines[i - 1]!;
+    const cur = lines[i]!;
+    out.push(intersectLines(prev.p, prev.u, cur.p, cur.u) ?? cur.p);
+  }
+  const last = lines[lines.length - 1]!;
+  out.push(add(points[points.length - 1]!, scale(normal(last.u), d)));
+  return out;
+}
+
+/** Closed outline of a band of width 2·halfWidth around a centreline (vehicle body). */
+export function bandOutline(points: Point[], halfWidth: number): Point[] {
+  return [...offsetPolyline(points, halfWidth), ...offsetPolyline(points, -halfWidth).reverse()];
+}

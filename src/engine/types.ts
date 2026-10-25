@@ -17,6 +17,8 @@ export interface Point {
 
 export interface StationEdge {
   id: string;
+  /** Human-readable name of this piece of track, e.g. "tor 67 (wschód)". */
+  name?: string;
   /** Track number shown to the user ("63", "65", "łącznik", …). */
   track: string;
   from: string;
@@ -68,14 +70,17 @@ export interface TrackLabel {
   y: number;
 }
 
+/** Wagon counter label; counts wagons whose centre lies on any of `edges`. */
 export interface Counter {
-  track: string;
+  edges: string[];
   x: number;
   y: number;
 }
 
 export interface VehicleType {
   id: string;
+  /** Prefix of generated vehicle ids, e.g. "R" → R1, R2, … */
+  idPrefix: string;
   name: string;
   color: string;
   lengthM: number;

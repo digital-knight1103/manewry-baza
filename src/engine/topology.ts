@@ -82,6 +82,10 @@ export function validateStation(layout: StationLayout): string[] {
     if (typeIds.has(t.id)) errors.push(`Zduplikowany typ pojazdu ${t.id}`);
     typeIds.add(t.id);
     if (!(t.lengthM > 0)) errors.push(`Typ ${t.id}: długość musi być dodatnia`);
+    if (!t.idPrefix) errors.push(`Typ ${t.id}: brak idPrefix`);
+  }
+  for (const c of layout.counters) {
+    for (const id of c.edges) if (!edgeIds.has(id)) errors.push(`Licznik: brak odcinka ${id}`);
   }
 
   return errors;

@@ -1,4 +1,5 @@
-import type { StationLayout } from '../engine/types';
+import type { PointerEvent } from 'react';
+import type { StationLayout, VehicleType } from '../engine/types';
 import { LABEL_FONT, LABEL_SIZE, OUTLINE_COLOR, RAIL_COLOR } from '../components/station/style';
 
 // Legend placement in schematic units, matching docs/img/01-uklad.png.
@@ -10,8 +11,14 @@ const SWATCH_H = 20;
 const TEXT_GAP = 12;
 const HALL_ICON = { w: 106, h: 55, wallFromLeft: 85 };
 
+interface Props {
+  layout: StationLayout;
+  /** When set, the legend doubles as the vehicle palette: entries can be dragged onto tracks. */
+  onTypePointerDown?: (typeId: string, e: PointerEvent<SVGGElement>) => void;
+}
+
 /** Legend drawn inside the station SVG: non-powered stock on the left, powered stock + hall on the right. */
-export function Legend({ layout }: { layout: StationLayout }) {
+export function Legend({ layout, onTypePointerDown }: Props) {
   const scale = layout.scalePxPerMeter;
   const wagons = layout.vehicleTypes.filter((t) => !t.powered);
   const powered = layout.vehicleTypes.filter((t) => t.powered);
@@ -19,6 +26,12 @@ export function Legend({ layout }: { layout: StationLayout }) {
   const swatch = (x: number, y: number, w: number, color: string) => (
     <rect x={x} y={y} width={w} height={SWATCH_H} fill={color} stroke={OUTLINE_COLOR} strokeWidth={1} />
   );
+
+  const entryProps = (t: VehicleType) =>
+    onTypePointerDown
+      ? { className: 'palette-entry', onPointerDown: (e: PointerEvent<SVGGElement>) => onTypePointerDown(t.id, e) }
+      : {};
+  const paletteTitle = onTypePointerDown && <title>Przeciągnij na tor, aby dodać</title>;
 
   const hallY = TOP_Y + powered.length * ROW_STEP + 8;
   const hall = layout.hall;
@@ -29,7 +42,8 @@ export function Legend({ layout }: { layout: StationLayout }) {
         const w = t.lengthM * scale;
         const y = TOP_Y + i * ROW_STEP;
         return (
-          <g key={t.id}>
+          <g key={t.id} {...entryProps(t)}>
+            {paletteTitle}
             {swatch(LEFT_X, y, w, t.color)}
             <text x={LEFT_X + w + TEXT_GAP} y={y + 15}>
               {t.name}
@@ -40,7 +54,8 @@ export function Legend({ layout }: { layout: StationLayout }) {
       {powered.map((t, i) => {
         const y = TOP_Y + i * ROW_STEP;
         return (
-          <g key={t.id}>
+          <g key={t.id} {...entryProps(t)}>
+            {paletteTitle}
             {swatch(RIGHT_X, y, t.lengthM * scale, t.color)}
             <text x={RIGHT_X + 79} y={y + 15}>
               {t.name}

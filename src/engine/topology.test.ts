@@ -57,6 +57,7 @@ describe('topology', () => {
       edges: [{ id: 'b', track: 'x', from: 'N63W', to: 'N67W', points: [{ x: 100, y: 213 }] }],
       switches: [],
       boundaries: [],
+      counters: [],
     });
     expect(bent.edgeLength.get('b')).toBeCloseTo(60 + Math.hypot(60, 57));
     expect(pointAt(bent, 'b', 30)).toEqual({ x: 70, y: 213 });
