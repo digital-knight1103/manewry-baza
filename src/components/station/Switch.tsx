@@ -10,6 +10,8 @@ interface Props {
 }
 
 const STUB_LENGTH = 34;
+/** Switch id label offset: above the node and to the right, clear of vehicles on every track through it. */
+const LABEL_OFFSET = { x: 8, y: -14 };
 
 /** Switch marker with the currently active route lightly highlighted. */
 export function SwitchRoute({ topo, sw, stateIndex }: Props) {
@@ -56,7 +58,7 @@ export function SwitchMarker({ topo, sw, stateIndex, onClick }: Props & { onClic
       <title>{title}</title>
       {onClick && <circle cx={node.x} cy={node.y} r={11} fill="transparent" />}
       <circle className="switch-dot" cx={node.x} cy={node.y} r={4.5} fill="#ffffff" stroke={OUTLINE_COLOR} strokeWidth={1.2} />
-      <text x={node.x + 7} y={node.y - 7} fontSize={10} fill="#555">
+      <text x={node.x + LABEL_OFFSET.x} y={node.y + LABEL_OFFSET.y} fontSize={10} fill="#555">
         {sw.id}
       </text>
     </g>

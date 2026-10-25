@@ -72,8 +72,8 @@
   "counters": [
     { "edges": ["e63"], "x": 125, "y": 188 },
     { "edges": ["e65"], "x": 672, "y": 180 },
-    { "edges": ["e67"], "x": 125, "y": 316 },
-    { "edges": ["e67b", "e69"], "x": 775, "y": 316, "_uwaga": "jak na rysunku 1: prawa część toru 67 razem z torem 69" }
+    { "edges": ["e67"], "x": 125, "y": 250, "_uwaga": "nad torem 67, w jednym wierszu z etykietą – jak licznik toru 63" },
+    { "edges": ["e67b", "e69"], "x": 775, "y": 250, "_uwaga": "prawa część toru 67 razem z torem 69; nad torem (na rysunku 1 pod torem – czytało się jak tor 3)" }
   ],
   "vehicleTypes": [
     { "id": "wagon_dlugo",  "idPrefix": "D", "name": "Wagon na naprawę długoterminową", "color": "#7B3A12", "lengthM": 15 },
