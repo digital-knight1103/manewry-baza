@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { formatCount, STEP } from '../engine/counters';
 import { PLAYBACK_SPEEDS, useScenarioStore } from '../store/useScenarioStore';
-
-/** Longest frame step (ms): after a hidden tab the animation must not jump. */
-const MAX_FRAME_MS = 100;
+import { usePlaybackAnimation } from './playbackAnimation';
 
 const isTyping = (target: EventTarget | null) => {
   const el = target as HTMLElement | null;
@@ -12,21 +10,7 @@ const isTyping = (target: EventTarget | null) => {
 
 /** Animation loop and keys of scenario playback: Space ▶/⏸, → next step, ← previous step, Home from the start. */
 function usePlaybackLoop() {
-  const animating = useScenarioStore((s) => (s.playback !== null && !s.playback.finished) || s.gap > 0);
-  const paused = useScenarioStore((s) => s.paused);
-
-  useEffect(() => {
-    if (!animating || paused) return;
-    let last = performance.now();
-    let raf = requestAnimationFrame(function frame(now) {
-      const dt = Math.min(MAX_FRAME_MS, Math.max(0, now - last));
-      last = now;
-      useScenarioStore.getState().tick(dt);
-      raf = requestAnimationFrame(frame);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [animating, paused]);
-
+  usePlaybackAnimation();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;

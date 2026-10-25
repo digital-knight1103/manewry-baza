@@ -6,6 +6,7 @@ import { captionStepIndex, useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
 import { describeAction } from './describeAction';
 import { DrivePanel } from './DrivePanel';
+import { copyText, openPresentation, presentationUrl } from './presentationControl';
 
 /** Saves text as a file through a temporary link. */
 function saveFile({ name, text }: { name: string; text: string }) {
@@ -23,6 +24,7 @@ export function ScenarioPanel() {
   return (
     <div className="scenario-panel">
       <ScenarioList />
+      <PresentationSection />
       <Recording />
       {recording ? <DrivePanel history={false} /> : <Steps />}
     </div>
@@ -118,6 +120,46 @@ function ScenarioList() {
           }}
         />
       </div>
+    </section>
+  );
+}
+
+function PresentationSection() {
+  const active = useScenarioStore((s) => s.active());
+  const readOnly = useScenarioStore((s) => s.isReadOnly(s.activeId));
+  const recording = useScenarioStore((s) => s.recording);
+  if (!active || recording) return null;
+  const ready = active.steps.length > 0;
+  return (
+    <section>
+      <h2>Prezentacja</h2>
+      <div className="button-wrap">
+        <button
+          type="button"
+          className="primary"
+          disabled={!ready}
+          title="Pełny ekran, sterowanie klawiaturą: → / Spacja dalej, ← wstecz, Esc wyjście"
+          onClick={() => openPresentation(active.id)}
+        >
+          ▶ Prezentacja
+        </button>
+        <button
+          type="button"
+          disabled={!ready}
+          title="Link otwierający od razu prezentację tego scenariusza"
+          onClick={async () => {
+            if (await copyText(presentationUrl(active.id))) useStationStore.getState().setMessage('Skopiowano link do prezentacji');
+          }}
+        >
+          Kopiuj link do prezentacji
+        </button>
+      </div>
+      {!readOnly && (
+        <p className="muted small">
+          Scenariusz zapisany tylko w tej przeglądarce – link zadziała na innym komputerze po imporcie scenariusza lub
+          dodaniu go jako wbudowany.
+        </p>
+      )}
     </section>
   );
 }

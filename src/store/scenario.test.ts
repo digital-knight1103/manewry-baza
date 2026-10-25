@@ -31,6 +31,16 @@ describe('tryb Scenariusz – odtwarzanie', () => {
     expect(st().message).toMatch(/tylko do odczytu/);
   });
 
+  it('każdy scenariusz wbudowany (src/data/scenarios) odtwarza się bez błędów i ma unikalne id', () => {
+    const ids = scn().builtIn.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const s of scn().builtIn) {
+      const run = runScenario(st().topo, s);
+      expect(run.error, `${s.id}: ${run.error?.message}`).toBeUndefined();
+      expect(run.snapshots).toHaveLength(s.steps.length + 1);
+    }
+  });
+
   it('▶ Odtwórz przechodzi płynnie przez wszystkie kroki do stanu końcowego', () => {
     const before = st().state;
     scn().play();

@@ -36,6 +36,10 @@ interface Props {
   pulseEdges?: string[];
   flashSwitch?: string | null;
   caption?: { title: string; bullets: string[] } | null;
+  /** Draw the legend inside the schematic (the presentation shows it outside). */
+  legend?: boolean;
+  /** Visible part of the schematic; defaults to the layout viewBox. */
+  viewBox?: [number, number, number, number];
   className?: string;
   /** Extra overlay drawn on top (drag previews etc.). */
   overlay?: ReactNode;
@@ -60,6 +64,8 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
     pulseEdges,
     flashSwitch = null,
     caption = null,
+    legend = true,
+    viewBox,
     className,
     overlay,
   },
@@ -72,14 +78,14 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
     <svg
       ref={ref}
       className={['station-svg', className, onEdgePick && 'picking'].filter(Boolean).join(' ')}
-      viewBox={layout.viewBox.join(' ')}
+      viewBox={(viewBox ?? layout.viewBox).join(' ')}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={layout.name}
       onPointerDown={onBackgroundPointerDown}
     >
       <rect x={layout.viewBox[0]} y={layout.viewBox[1]} width={layout.viewBox[2]} height={layout.viewBox[3]} fill="#ffffff" />
-      <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} wagonsOnly={caption !== null} />
+      {legend && <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} wagonsOnly={caption !== null} />}
       {caption && <StepCaption title={caption.title} bullets={caption.bullets} />}
       <Hall hall={layout.hall} />
       {routeEdges && <RouteHighlight topo={topo} edges={routeEdges} />}

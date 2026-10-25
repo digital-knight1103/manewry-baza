@@ -561,3 +561,237 @@ kbd {
   font-size: 13px;
   resize: vertical;
 }
+
+/* --- Presentation mode --- */
+
+.presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: #fff;
+  /* Text scales with the screen: readable from the back of the room on a projector. */
+  font-size: clamp(10px, 1.25vw, 32px);
+}
+
+.presentation.cursor-hidden,
+.presentation.cursor-hidden * {
+  cursor: none !important;
+}
+
+.pres-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 3vw;
+  padding: 2.2vh 3vw 0;
+}
+
+.pres-legend {
+  display: flex;
+  flex: none;
+  gap: 2.5em;
+}
+
+.pres-legend ul {
+  display: grid;
+  gap: 0.45em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pres-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  white-space: nowrap;
+}
+
+.pres-swatch,
+.pres-hall-icon {
+  flex: none;
+}
+
+.pres-swatch {
+  /* --len: vehicle length in schematic units (lengthM × scalePxPerMeter) */
+  width: calc(var(--len) * 0.075em);
+  min-width: 0.35em;
+  height: 1.2em;
+  border: 1px solid #0f2f3f;
+}
+
+.pres-hall-icon {
+  width: 3.3em;
+  height: 1.7em;
+}
+
+.pres-caption {
+  flex: 0 1 46vw;
+  min-width: 0;
+  margin-right: 1vw;
+}
+
+.pres-caption h2 {
+  margin: 0 0 0.5em;
+  font-size: 2.1em;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.pres-caption ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.5em;
+  line-height: 1.3;
+}
+
+.pres-caption li {
+  position: relative;
+  margin-bottom: 0.45em;
+  padding-left: 1.4em;
+}
+
+.pres-caption li::before {
+  content: '';
+  position: absolute;
+  left: 0.1em;
+  top: 0.35em;
+  width: 0.6em;
+  height: 0.6em;
+  border: 0.09em solid #111;
+}
+
+/* 4:3 projectors: more height than width — larger caption, more compact legend. */
+@media (max-aspect-ratio: 3/2) {
+  .presentation {
+    font-size: clamp(10px, 1.6vw, 32px);
+  }
+
+  .pres-legend {
+    font-size: 0.8em;
+  }
+
+  .pres-caption {
+    flex-basis: 52vw;
+  }
+}
+
+.pres-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 1vh 1.5vw;
+}
+
+.presentation .station-svg {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: none;
+}
+
+.pres-card-backdrop {
+  position: absolute;
+  inset: 0 0 3.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pres-card {
+  max-width: 70vw;
+  padding: 1.6em 3em;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: 0.35em solid var(--accent);
+  border-radius: 0.5em;
+  box-shadow: 0 0.6em 2em rgba(15, 47, 63, 0.18);
+}
+
+.pres-card h1 {
+  margin: 0.15em 0;
+  font-size: 3.2em;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.pres-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.1em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pres-sub {
+  margin: 0.3em 0 0;
+  color: var(--muted);
+  font-size: 1.5em;
+}
+
+.pres-keys {
+  margin: 1.4em 0 0;
+  color: var(--muted);
+}
+
+.presentation kbd {
+  padding: 0 0.35em;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+.pres-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+  padding: 0.5em 3vw 0.8em;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.pres-step {
+  color: var(--text);
+  font-size: 1.35em;
+  font-weight: 600;
+}
+
+.pres-error {
+  color: #a3261b;
+}
+
+.pres-hint {
+  margin-left: auto;
+}
+
+.pres-close {
+  font: inherit;
+  padding: 0.2em 0.8em;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+
+.pres-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.3em;
+  background: #e6e9ed;
+}
+
+.pres-progress div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
