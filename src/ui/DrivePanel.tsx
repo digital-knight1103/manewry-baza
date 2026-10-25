@@ -7,8 +7,8 @@ import { SPEED_DEFAULT, SPEED_MAX, SPEED_MIN, useDriveStore } from '../store/use
 import { useStationStore } from '../store/useStationStore';
 import { useDriveControls } from './keyboard';
 
-/** Side panel of the drive mode: driven vehicle, controls, routes, history, vehicle info. */
-export function DrivePanel() {
+/** Side panel of the drive mode: driven vehicle, controls, routes, history, vehicle info. Also used while recording a scenario (without history). */
+export function DrivePanel({ history = true }: { history?: boolean }) {
   useDriveControls();
   return (
     <div className="drive-panel">
@@ -18,7 +18,7 @@ export function DrivePanel() {
       </p>
       <Driver />
       <Controls />
-      <History />
+      {history && <History />}
       <Inspected />
     </div>
   );

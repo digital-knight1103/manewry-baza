@@ -10,8 +10,10 @@ import {
   setSwitches,
   type ScreenSide,
 } from '../engine/control';
+import type { Action } from '../engine/actions';
 import { areCoupled, consistOf, couple, removeVehicle, uncouple } from '../engine/edit';
 import { findRouteForVehicle } from '../engine/route';
+import { driveToAction } from '../engine/scenarioEdit';
 import { switchDef, toggleSwitch } from '../engine/switches';
 import { vehicleType, type StationState } from '../engine/vehicles';
 import { useAppStore } from './useAppStore';
@@ -59,6 +61,17 @@ interface DriveStore {
   redo: () => void;
 }
 
+/** Receives every manoeuvre done in drive mode while a scenario is being recorded. */
+let recorder: ((action: Action) => void) | null = null;
+export const setActionRecorder = (fn: ((action: Action) => void) | null) => {
+  recorder = fn;
+};
+const record = (action: Action) => recorder?.(action);
+
+/** State when the current drive started, and the vehicle it coupled with when the engine stopped it. */
+let driveFrom: StationState | null = null;
+let coupledWith: string | null = null;
+
 const station = () => useStationStore.getState();
 const topo = () => station().topo;
 const edgeName = (edgeId: string) => topo().edges.get(edgeId)?.name ?? edgeId;
@@ -74,9 +87,25 @@ export const useDriveStore = create<DriveStore>((set, get) => {
     });
   };
 
+  /** A finished drive becomes one recorded action: driveTo the stopping point, or driveAndCouple. */
+  const recordDrive = () => {
+    const from = driveFrom;
+    const hit = coupledWith;
+    driveFrom = null;
+    coupledWith = null;
+    const { driverId } = get();
+    const before = driverId ? from?.vehicles[driverId] : undefined;
+    const now = driverId ? station().state.vehicles[driverId] : undefined;
+    if (!driverId || !before || !now) return;
+    if (hit) record({ type: 'driveAndCouple', vehicle: driverId, to: hit });
+    else if (now.pos.edge !== before.pos.edge || Math.abs(now.pos.s - before.pos.s) > 1e-6)
+      record(driveToAction(station().state, driverId));
+  };
+
   const stop = () => {
     if (get().throttle) set({ throttle: null });
     station().settle();
+    recordDrive();
   };
 
   return {
@@ -128,6 +157,7 @@ export const useDriveStore = create<DriveStore>((set, get) => {
         station().setMessage('Najpierw kliknij lokomotywę lub shunter');
         return;
       }
+      if (!get().throttle) driveFrom = station().state;
       set({ throttle: side, side, pickingRoute: false });
       // Drive one tiny step at once so that a blocked consist reports why immediately.
       get().driveTick(0);
@@ -141,8 +171,9 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       const res = driveTowards(s.topo, s.state, driverId, throttle, speed * dt, { autoCouple: s.autoCouple });
       s.change(res.state);
       if (!res.stop) return;
-      stop();
       const { stop: why } = res;
+      if (why.reason === 'collision' && why.coupled) coupledWith = why.vehicle!;
+      stop();
       if (why.reason === 'collision' && why.coupled) s.setMessage(`Sprzęgnięto z pojazdem ${why.vehicle}`);
       else if (why.reason === 'exit') s.setMessage('Wyjazd ze stacji – „Zjedź ze stacji” usuwa skład ze schematu');
       else s.setMessage(why.message);
@@ -155,7 +186,9 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       const res = toggleSwitch(s.topo, s.state, switchId);
       if (res.error) return s.setMessage(res.error);
       const sw = switchDef(s.topo, switchId);
-      s.commit(res.state, `Rozjazd ${switchId}: ${sw.states[res.state.switches[switchId]!]!.name}`);
+      const index = res.state.switches[switchId]!;
+      s.commit(res.state, `Rozjazd ${switchId}: ${sw.states[index]!.name}`);
+      record({ type: 'setSwitch', switch: switchId, state: index });
       set({ route: null });
     },
 
@@ -163,11 +196,13 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       const s = station();
       if (areCoupled(s.state, a, b)) {
         s.commit(uncouple(s.state, a, b), `Rozprzęgnięto ${a} i ${b}`);
+        record({ type: 'uncouple', between: [a, b] });
         return;
       }
       const next = couple(s.topo, s.state, a, b);
-      if (next === s.state) s.setMessage(`Pojazdy ${a} i ${b} nie stykają się`);
-      else s.commit(next, `Sprzęgnięto ${a} z ${b}`);
+      if (next === s.state) return s.setMessage(`Pojazdy ${a} i ${b} nie stykają się`);
+      s.commit(next, `Sprzęgnięto ${a} z ${b}`);
+      record({ type: 'couple', between: [a, b] });
     },
 
     startRoutePick: () => {
@@ -204,6 +239,8 @@ export const useDriveStore = create<DriveStore>((set, get) => {
         return s.setMessage(`Nie można ustawić drogi: ${res.error}`);
       }
       s.commit(res.state, describeRoute(s.topo, res.state.switches, driver.pos, route, edgeId));
+      for (const [id, index] of Object.entries(res.state.switches))
+        if (s.state.switches[id] !== index) record({ type: 'setSwitch', switch: id, state: index });
       set({ route: routeEdges(route) });
     },
 
@@ -217,6 +254,7 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       stop();
       const group = consistOf(s.state, driverId);
       s.commit(group.reduce(removeVehicle, s.state), `Zjechał ze stacji: ${group.join(', ')}`);
+      record({ type: 'remove', vehicles: group });
       set({ route: null });
       dropMissing();
     },

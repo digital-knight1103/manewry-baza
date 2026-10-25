@@ -9,3 +9,5 @@ export const ROUTE_HIGHLIGHT = '#FFC400';
 export const VEHICLE_HEIGHT = 20;
 export const VEHICLE_STROKE = 1.2;
 export const SELECTION_COLOR = '#FFC400';
+/** Pulsing highlight of vehicles, tracks and switches during scenario playback. */
+export const PULSE_COLOR = '#E53935';

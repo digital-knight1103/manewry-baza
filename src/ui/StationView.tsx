@@ -8,6 +8,7 @@ import type { Point } from '../engine/types';
 import { vehicleLength, vehicleType } from '../engine/vehicles';
 import { useAppStore } from '../store/useAppStore';
 import { useDriveStore } from '../store/useDriveStore';
+import { captionStepIndex, scenarioViewState, useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
 
 /** Pointer travel (screen px) below which a press on a vehicle counts as a click, not a drag. */
@@ -32,11 +33,16 @@ function trackPointer(onMove: (e: globalThis.PointerEvent) => void, onUp: (e: gl
   window.addEventListener('pointercancel', up);
 }
 
-/** Station schematic with the interactions of the current mode (edit: palette, dragging; drive: driving, switches, couplings). */
+/**
+ * Station schematic with the interactions of the current mode (edit: palette, dragging; drive and
+ * scenario recording: driving, switches, couplings; scenario playback: animation with captions).
+ */
 export function StationView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const editing = useAppStore((s) => s.mode === 'edit');
-  const driving = useAppStore((s) => s.mode === 'drive');
+  const recording = useScenarioStore((s) => s.recording);
+  const playingScenario = useAppStore((s) => s.mode === 'scenario') && !recording;
+  const driving = useAppStore((s) => s.mode === 'drive') || recording;
   const topo = useStationStore((s) => s.topo);
   const state = useStationStore((s) => s.state);
   const selectedId = useStationStore((s) => s.selectedId);
@@ -131,6 +137,8 @@ export function StationView() {
   const drive = useDriveStore.getState();
   const driverExists = driverId !== null && state.vehicles[driverId] !== undefined;
 
+  if (playingScenario) return <ScenarioSvg />;
+
   if (driving) {
     return (
       <StationSvg
@@ -163,6 +171,26 @@ export function StationView() {
       onPaletteTypePointerDown={editing ? onPaletteTypePointerDown : undefined}
       onBackgroundPointerDown={editing ? () => useStationStore.getState().select(null) : undefined}
       overlay={overlay}
+    />
+  );
+}
+
+/** Scenario playback: snapshot or animation frame, caption of the step, route / switch / highlight of the current action. */
+function ScenarioSvg() {
+  const topo = useStationStore((s) => s.topo);
+  const state = useScenarioStore(scenarioViewState);
+  const captionIndex = useScenarioStore(captionStepIndex);
+  const step = useScenarioStore((s) => (captionIndex === null ? undefined : s.active()?.steps[captionIndex]));
+  const anim = useScenarioStore((s) => s.playback?.anim ?? null);
+  return (
+    <StationSvg
+      topo={topo}
+      state={state}
+      caption={step ? { title: step.title, bullets: step.bullets } : null}
+      routeEdges={anim?.route ?? null}
+      flashSwitch={anim?.switchId ?? null}
+      pulseVehicles={anim?.highlight?.vehicles}
+      pulseEdges={anim?.highlight?.edges}
     />
   );
 }

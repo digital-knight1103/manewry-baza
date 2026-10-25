@@ -1,6 +1,7 @@
 import type { VehicleGap } from '../../engine/control';
 import { edgePolyline, type Topology } from '../../engine/topology';
 import { toPath } from './railGeometry';
+import { PULSE_COLOR } from './style';
 
 /** Route set with „Ustaw drogę”, drawn under the rails. */
 export function RouteHighlight({ topo, edges }: { topo: Topology; edges: string[] }) {
@@ -13,6 +14,26 @@ export function RouteHighlight({ topo, edges }: { topo: Topology; edges: string[
           stroke="#2E86DE"
           strokeOpacity={0.28}
           strokeWidth={16}
+          strokeLinecap="round"
+          fill="none"
+        />
+      ))}
+    </g>
+  );
+}
+
+/** Pulsing highlight of whole tracks (scenario action „highlight” with a track). */
+export function TrackPulse({ topo, edges }: { topo: Topology; edges: string[] }) {
+  return (
+    <g pointerEvents="none">
+      {edges.map((id) => (
+        <path
+          key={id}
+          className="pulse"
+          d={toPath(edgePolyline(topo, id))}
+          stroke={PULSE_COLOR}
+          strokeOpacity={0.35}
+          strokeWidth={26}
           strokeLinecap="round"
           fill="none"
         />

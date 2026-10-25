@@ -1,7 +1,7 @@
 import type { Topology } from '../../engine/topology';
 import type { SwitchDef } from '../../engine/types';
 import { edgeStub } from './railGeometry';
-import { OUTLINE_COLOR, ROUTE_HIGHLIGHT } from './style';
+import { OUTLINE_COLOR, PULSE_COLOR, ROUTE_HIGHLIGHT } from './style';
 
 interface Props {
   topo: Topology;
@@ -39,7 +39,13 @@ export function SwitchRoute({ topo, sw, stateIndex }: Props) {
   );
 }
 
-export function SwitchMarker({ topo, sw, stateIndex, onClick }: Props & { onClick?: (switchId: string) => void }) {
+export function SwitchMarker({
+  topo,
+  sw,
+  stateIndex,
+  onClick,
+  flash = false,
+}: Props & { onClick?: (switchId: string) => void; /** Switch just being thrown (scenario playback). */ flash?: boolean }) {
   const node = topo.nodes.get(sw.node)!;
   const state = sw.states[stateIndex];
   const title = `Rozjazd ${sw.id}: ${state?.name ?? '?'}${onClick ? ' – kliknij, aby przełożyć' : ''}`;
@@ -57,6 +63,18 @@ export function SwitchMarker({ topo, sw, stateIndex, onClick }: Props & { onClic
     >
       <title>{title}</title>
       {onClick && <circle cx={node.x} cy={node.y} r={11} fill="transparent" />}
+      {flash && (
+        <circle
+          className="pulse"
+          cx={node.x}
+          cy={node.y}
+          r={12}
+          fill={PULSE_COLOR}
+          fillOpacity={0.25}
+          stroke={PULSE_COLOR}
+          strokeWidth={3}
+        />
+      )}
       <circle className="switch-dot" cx={node.x} cy={node.y} r={4.5} fill="#ffffff" stroke={OUTLINE_COLOR} strokeWidth={1.2} />
       <text x={node.x + LABEL_OFFSET.x} y={node.y + LABEL_OFFSET.y} fontSize={10} fill="#555">
         {sw.id}

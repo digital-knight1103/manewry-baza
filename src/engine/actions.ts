@@ -1,8 +1,9 @@
 // Scenario actions (SPEC rozdz. 10), each executed to completion.
 import { areCoupled, consistOf, couple, removeVehicle, uncouple } from './edit';
 import { buildLines, fromU, lineOfEdge } from './lines';
-import { distanceAlongRoute, drive } from './movement';
-import { setSwitch } from './switches';
+import { distanceAlongRoute, drive, type Dir } from './movement';
+import { findRouteForVehicle } from './route';
+import { setSwitch, switchDef } from './switches';
 import type { Topology } from './topology';
 import { bodyOnLine, couplingGap, EPS, vehicleLength, type PlacementVehicle, type StationState, type Vehicle } from './vehicles';
 
@@ -17,18 +18,53 @@ export type Action =
   | { type: 'wait'; ms: number }
   | { type: 'highlight'; vehicles?: string[]; track?: string; ms: number };
 
+/** Movement performed by a drive action, so that the UI can animate it from the start state. */
+export interface DriveMotion {
+  vehicle: string;
+  dir: Dir;
+  /** Distance actually travelled. */
+  distance: number;
+}
+
 export interface ActionResult {
   state: StationState;
   /** Why the action failed (Polish); the state is then left as far as the action got. */
   error?: string;
+  /** driveTo / driveAndCouple only. */
+  motion?: DriveMotion;
 }
 
-/** Tolerance for reaching a driveTo target. */
-const TARGET_TOLERANCE = 1e-3;
+/** Tolerance for reaching a driveTo target (recorded offsets are rounded to 0.01). */
+const TARGET_TOLERANCE = 0.01;
+
+/** Why the vehicle cannot get to `edgeId` along its current track: switch set against it, reversal needed, no way. */
+function unreachableReason(topo: Topology, state: StationState, vehicleId: string, edgeId: string, what: string): string {
+  const route = findRouteForVehicle(topo, state, vehicleId, edgeId);
+  if (!route.found) return `${vehicleId}: brak drogi do: ${what}`;
+  if (route.needsReversal) return `${vehicleId}: dojazd do: ${what} wymaga zmiany kierunku – podziel przejazd na kilka akcji`;
+  const wrong = Object.entries(route.legs[0]!.switches)
+    .filter(([id, index]) => (state.switches[id] ?? switchDef(topo, id).default) !== index)
+    .map(([id, index]) => `rozjazd ${id} ustawiony przeciwnie (potrzebny stan: ${switchDef(topo, id).states[index]!.name})`);
+  if (wrong.length > 0) return `${vehicleId}: ${wrong.join(', ')} – brak drogi do: ${what}`;
+  return `${vehicleId}: ${what} nieosiągalny przy obecnym ustawieniu rozjazdów`;
+}
 
 const missing = (state: StationState, ids: string[]) => ids.find((id) => !state.vehicles[id]);
 
+/** Edges of a highlighted track: given by track number ("65") or by edge id ("e67b"). */
+export const highlightEdges = (topo: Topology, track: string): string[] =>
+  topo.layout.edges.filter((e) => e.track === track || e.id === track).map((e) => e.id);
+
+/** Executes an action instantly. Bad data (unknown switch, vehicle type…) is reported as an error, never thrown. */
 export function applyAction(topo: Topology, state: StationState, action: Action): ActionResult {
+  try {
+    return execute(topo, state, action);
+  } catch (e) {
+    return { state, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+function execute(topo: Topology, state: StationState, action: Action): ActionResult {
   switch (action.type) {
     case 'setSwitch':
       return setSwitch(topo, state, action.switch, action.state);
@@ -37,24 +73,29 @@ export function applyAction(topo: Topology, state: StationState, action: Action)
       if (missing(state, [action.vehicle])) return { state, error: `Brak pojazdu ${action.vehicle}` };
       if (!topo.edges.has(action.edge)) return { state, error: `Nieznany odcinek ${action.edge}` };
       const target = distanceAlongRoute(topo, state, action.vehicle, action.edge, action.offset);
-      if (!target)
-        return { state, error: `${action.vehicle}: punkt na odcinku ${action.edge} nieosiągalny przy obecnym ustawieniu rozjazdów` };
+      if (!target) {
+        const what = topo.edges.get(action.edge)!.name ?? action.edge;
+        return { state, error: unreachableReason(topo, state, action.vehicle, action.edge, what) };
+      }
       const res = drive(topo, state, action.vehicle, target.dir, target.distance, { autoCouple: false });
+      const motion = { vehicle: action.vehicle, dir: target.dir, distance: res.moved };
       if (res.moved < target.distance - TARGET_TOLERANCE)
-        return { state: res.state, error: `${action.vehicle}: ${res.stop?.message ?? 'nie dojechał do celu'}` };
-      return { state: res.state };
+        return { state: res.state, motion, error: `${action.vehicle}: ${res.stop?.message ?? 'nie dojechał do celu'}` };
+      return { state: res.state, motion };
     }
 
     case 'driveAndCouple': {
       const gone = missing(state, [action.vehicle, action.to]);
       if (gone) return { state, error: `Brak pojazdu ${gone}` };
       if (consistOf(state, action.vehicle).includes(action.to)) return { state };
-      const toward = distanceAlongRoute(topo, state, action.vehicle, state.vehicles[action.to]!.pos.edge, state.vehicles[action.to]!.pos.s);
-      if (!toward) return { state, error: `${action.vehicle}: pojazd ${action.to} nieosiągalny przy obecnym ustawieniu rozjazdów` };
+      const to = state.vehicles[action.to]!.pos;
+      const toward = distanceAlongRoute(topo, state, action.vehicle, to.edge, to.s);
+      if (!toward) return { state, error: unreachableReason(topo, state, action.vehicle, to.edge, `pojazd ${action.to}`) };
       const res = drive(topo, state, action.vehicle, toward.dir, Infinity, { autoCouple: true });
+      const motion = { vehicle: action.vehicle, dir: toward.dir, distance: res.moved };
       if (!consistOf(res.state, action.vehicle).includes(action.to))
-        return { state: res.state, error: `${action.vehicle}: ${res.stop?.message ?? `nie dojechał do ${action.to}`}` };
-      return { state: res.state };
+        return { state: res.state, motion, error: `${action.vehicle}: ${res.stop?.message ?? `nie dojechał do ${action.to}`}` };
+      return { state: res.state, motion };
     }
 
     case 'couple': {
@@ -80,8 +121,15 @@ export function applyAction(topo: Topology, state: StationState, action: Action)
       return { state: action.vehicles.reduce(removeVehicle, state) };
     }
 
+    case 'highlight': {
+      const gone = missing(state, action.vehicles ?? []);
+      if (gone) return { state, error: `Brak pojazdu ${gone}` };
+      if (action.track !== undefined && highlightEdges(topo, action.track).length === 0)
+        return { state, error: `Nieznany tor ${action.track}` };
+      return { state };
+    }
+
     case 'wait':
-    case 'highlight':
       return { state };
   }
 }

@@ -5,11 +5,11 @@ const KEYS: [keys: string, action: string][] = [
   ['Esc', 'anuluj „Ustaw drogę”'],
 ];
 
-/** Keyboard shortcuts of the drive mode, shown in the corner of the schematic. */
-export function KeyLegend() {
+/** Keyboard shortcuts of the drive mode, shown in the corner of the schematic. Undo is not available while recording a scenario. */
+export function KeyLegend({ undo = true }: { undo?: boolean }) {
   return (
     <dl className="key-legend" aria-label="Skróty klawiszowe">
-      {KEYS.map(([keys, action]) => (
+      {KEYS.filter(([keys]) => undo || !keys.startsWith('Ctrl')).map(([keys, action]) => (
         <div key={keys}>
           <dt>
             {keys.split(' / ').map((k, i) => (

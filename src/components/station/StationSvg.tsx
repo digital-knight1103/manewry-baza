@@ -5,9 +5,10 @@ import type { StationState } from '../../engine/vehicles';
 import { Legend } from '../../ui/Legend';
 import { BufferStop } from './BufferStop';
 import { Counters } from './Counters';
-import { EdgeTargets, GapTargets, RouteHighlight } from './DriveLayers';
+import { EdgeTargets, GapTargets, RouteHighlight, TrackPulse } from './DriveLayers';
 import { Hall } from './Hall';
 import { Labels } from './Labels';
+import { StepCaption } from './StepCaption';
 import { SwitchMarker, SwitchRoute } from './Switch';
 import { Track } from './Track';
 import { Vehicles } from './Vehicles';
@@ -30,6 +31,11 @@ interface Props {
   onGapClick?: (a: string, b: string) => void;
   /** When set, every edge is a click target (picking a route target). */
   onEdgePick?: (edgeId: string) => void;
+  /** Scenario playback: pulsing vehicles / track edges, switch being thrown, step caption. */
+  pulseVehicles?: string[];
+  pulseEdges?: string[];
+  flashSwitch?: string | null;
+  caption?: { title: string; bullets: string[] } | null;
   className?: string;
   /** Extra overlay drawn on top (drag previews etc.). */
   overlay?: ReactNode;
@@ -50,6 +56,10 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
     gaps,
     onGapClick,
     onEdgePick,
+    pulseVehicles,
+    pulseEdges,
+    flashSwitch = null,
+    caption = null,
     className,
     overlay,
   },
@@ -68,16 +78,12 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
       aria-label={layout.name}
       onPointerDown={onBackgroundPointerDown}
     >
-      <rect
-        x={layout.viewBox[0]}
-        y={layout.viewBox[1]}
-        width={layout.viewBox[2]}
-        height={layout.viewBox[3]}
-        fill="#ffffff"
-      />
-      <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} />
+      <rect x={layout.viewBox[0]} y={layout.viewBox[1]} width={layout.viewBox[2]} height={layout.viewBox[3]} fill="#ffffff" />
+      <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} wagonsOnly={caption !== null} />
+      {caption && <StepCaption title={caption.title} bullets={caption.bullets} />}
       <Hall hall={layout.hall} />
       {routeEdges && <RouteHighlight topo={topo} edges={routeEdges} />}
+      {pulseEdges && pulseEdges.length > 0 && <TrackPulse topo={topo} edges={pulseEdges} />}
       {layout.switches.map((sw) => (
         <SwitchRoute key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} />
       ))}
@@ -98,11 +104,19 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
         state={state}
         selectedId={selectedId}
         arrow={driverArrow}
+        pulseIds={pulseVehicles}
         onVehiclePointerDown={onVehiclePointerDown}
       />
       {gaps && onGapClick && <GapTargets gaps={gaps} onGapClick={onGapClick} />}
       {layout.switches.map((sw) => (
-        <SwitchMarker key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} onClick={onSwitchClick} />
+        <SwitchMarker
+          key={sw.id}
+          topo={topo}
+          sw={sw}
+          stateIndex={stateOf(sw.id, sw.default)}
+          onClick={onSwitchClick}
+          flash={sw.id === flashSwitch}
+        />
       ))}
       {onEdgePick && <EdgeTargets topo={topo} onEdgePick={onEdgePick} />}
       {overlay}

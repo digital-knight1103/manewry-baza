@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { areCoupled, consistOf, touchingNeighbours, type FillDirection } from '../engine/edit';
 import { vehicleType } from '../engine/vehicles';
+import { useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
 
 const DIRECTIONS: { id: FillDirection; label: string }[] = [
@@ -152,6 +153,8 @@ function SelectedVehicle() {
 function StationActions() {
   const autoCouple = useStationStore((s) => s.autoCouple);
   const { setAutoCouple, clear, loadExample } = useStationStore.getState();
+  const target = useScenarioStore((s) => s.active());
+  const readOnly = useScenarioStore((s) => s.isReadOnly(s.activeId));
   return (
     <section>
       <h2>Stacja</h2>
@@ -163,7 +166,16 @@ function StationActions() {
         <button type="button" onClick={loadExample}>
           Wczytaj stan początkowy scenariusza
         </button>
-        <button type="button" disabled title="Dostępne w etapie E5 (scenariusze)">
+        <button
+          type="button"
+          disabled={!target || readOnly}
+          title={
+            !target || readOnly
+              ? 'Wybierz edytowalny scenariusz w trybie Scenariusz (wbudowany: „Duplikuj”)'
+              : `Stan stacji stanie się stanem początkowym scenariusza „${target.title}”`
+          }
+          onClick={() => useScenarioStore.getState().saveInitialFromStation()}
+        >
           Zapisz jako stan początkowy scenariusza
         </button>
         <button

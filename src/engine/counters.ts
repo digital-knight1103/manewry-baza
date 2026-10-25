@@ -3,6 +3,8 @@ export type PluralForms = readonly [one: string, few: string, many: string];
 
 export const WAGON: PluralForms = ['wagon', 'wagony', 'wagonów'];
 export const VEHICLE: PluralForms = ['pojazd', 'pojazdy', 'pojazdów'];
+export const ACTION: PluralForms = ['akcja', 'akcje', 'akcji'];
+export const STEP: PluralForms = ['krok', 'kroki', 'kroków'];
 
 /** Polish plural: 1 wagon, 2–4 wagony, 5+ wagonów, 12–14 wagonów, 22 wagony. */
 export function formatCount(n: number, forms: PluralForms): string {

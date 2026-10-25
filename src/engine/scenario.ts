@@ -32,7 +32,13 @@ export interface ScenarioRun {
   error?: ScenarioError;
 }
 
-/** Executes the whole scenario, stopping at the first failing action. */
+export const actionError = (step: number, action: number, message: string): ScenarioError => ({
+  step,
+  action,
+  message: `Krok ${step + 1}, akcja ${action + 1}: ${message}`,
+});
+
+/** Executes the whole scenario instantly, stopping at the first failing action. */
 export function runScenario(topo: Topology, scenario: Scenario): ScenarioRun {
   let state: StationState;
   try {
@@ -46,8 +52,7 @@ export function runScenario(topo: Topology, scenario: Scenario): ScenarioRun {
     for (const [ai, action] of step.actions.entries()) {
       const res = applyAction(topo, state, action);
       state = res.state;
-      if (res.error)
-        return { state, snapshots, error: { step: si, action: ai, message: `Krok ${si + 1}, akcja ${ai + 1}: ${res.error}` } };
+      if (res.error) return { state, snapshots, error: actionError(si, ai, res.error) };
     }
     snapshots.push(state);
   }

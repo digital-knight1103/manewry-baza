@@ -6,7 +6,7 @@ import type { Topology } from '../../engine/topology';
 import type { Point, StationLayout } from '../../engine/types';
 import { bodyOnLine, couplingGap, vehicleType, type StationState, type Vehicle } from '../../engine/vehicles';
 import { bandOutline, toPath } from './railGeometry';
-import { OUTLINE_COLOR, SELECTION_COLOR, VEHICLE_HEIGHT, VEHICLE_STROKE } from './style';
+import { OUTLINE_COLOR, PULSE_COLOR, SELECTION_COLOR, VEHICLE_HEIGHT, VEHICLE_STROKE } from './style';
 
 interface Props {
   topo: Topology;
@@ -14,6 +14,8 @@ interface Props {
   selectedId: string | null;
   /** Direction arrow next to the driven vehicle. */
   arrow?: { id: string; side: ScreenSide } | null;
+  /** Vehicles drawn with a pulsing highlight (scenario playback). */
+  pulseIds?: string[];
   onVehiclePointerDown?: (id: string, e: PointerEvent<SVGGElement>) => void;
 }
 
@@ -32,7 +34,7 @@ function vehicleTitle(layout: StationLayout, v: Vehicle): string {
 }
 
 /** All vehicles on the schematic plus short coupling bars between coupled neighbours. */
-export function Vehicles({ topo, state, selectedId, arrow = null, onVehiclePointerDown }: Props) {
+export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [], onVehiclePointerDown }: Props) {
   const { layout } = topo;
   const shapes = useMemo(() => {
     const lines = buildLines(topo, state.switches);
@@ -79,9 +81,19 @@ export function Vehicles({ topo, state, selectedId, arrow = null, onVehiclePoint
           >
             <title>{vehicleTitle(layout, v)}</title>
             {selected && (
-              <path d={outline} fill="none" stroke={SELECTION_COLOR} strokeWidth={7} strokeOpacity={0.85} strokeLinejoin="round" />
+              <path
+                d={outline}
+                fill="none"
+                stroke={SELECTION_COLOR}
+                strokeWidth={7}
+                strokeOpacity={0.85}
+                strokeLinejoin="round"
+              />
             )}
             <path d={outline} fill={vehicleType(layout, v.type).color} stroke={OUTLINE_COLOR} strokeWidth={VEHICLE_STROKE} />
+            {pulseIds.includes(v.id) && (
+              <path className="pulse" d={outline} fill="none" stroke={PULSE_COLOR} strokeWidth={6} strokeLinejoin="round" />
+            )}
           </g>
         );
       })}

@@ -15,10 +15,12 @@ interface Props {
   layout: StationLayout;
   /** When set, the legend doubles as the vehicle palette: entries can be dragged onto tracks. */
   onTypePointerDown?: (typeId: string, e: PointerEvent<SVGGElement>) => void;
+  /** Only the wagon column: the right part of the header holds the step caption (scenario mode). */
+  wagonsOnly?: boolean;
 }
 
 /** Legend drawn inside the station SVG: non-powered stock on the left, powered stock + hall on the right. */
-export function Legend({ layout, onTypePointerDown }: Props) {
+export function Legend({ layout, onTypePointerDown, wagonsOnly = false }: Props) {
   const scale = layout.scalePxPerMeter;
   const wagons = layout.vehicleTypes.filter((t) => !t.powered);
   const powered = layout.vehicleTypes.filter((t) => t.powered);
@@ -51,37 +53,40 @@ export function Legend({ layout, onTypePointerDown }: Props) {
           </g>
         );
       })}
-      {powered.map((t, i) => {
-        const y = TOP_Y + i * ROW_STEP;
-        return (
-          <g key={t.id} {...entryProps(t)}>
-            {paletteTitle}
-            {swatch(RIGHT_X, y, t.lengthM * scale, t.color)}
-            <text x={RIGHT_X + 79} y={y + 15}>
-              {t.name}
-            </text>
-          </g>
-        );
-      })}
-      <g className="legend-hall">
-        <rect x={RIGHT_X} y={hallY} width={HALL_ICON.w} height={HALL_ICON.h} fill={hall.fill} stroke={OUTLINE_COLOR} />
-        <line
-          x1={RIGHT_X + HALL_ICON.wallFromLeft}
-          y1={hallY}
-          x2={RIGHT_X + HALL_ICON.wallFromLeft}
-          y2={hallY + HALL_ICON.h}
-          stroke={OUTLINE_COLOR}
-        />
-        <rect x={RIGHT_X + 11} y={hallY + 18} width={57} height={32} fill={hall.channelFill} stroke={OUTLINE_COLOR} />
-        <path
-          d={`M${RIGHT_X - 5} ${hallY + 30}H${RIGHT_X + 80}M${RIGHT_X - 5} ${hallY + 38}H${RIGHT_X + 80}`}
-          stroke={RAIL_COLOR}
-          strokeWidth={1.5}
-        />
-        <text x={RIGHT_X + HALL_ICON.w + 12} y={hallY + 27}>
-          {hall.label}
-        </text>
-      </g>
+      {!wagonsOnly &&
+        powered.map((t, i) => {
+          const y = TOP_Y + i * ROW_STEP;
+          return (
+            <g key={t.id} {...entryProps(t)}>
+              {paletteTitle}
+              {swatch(RIGHT_X, y, t.lengthM * scale, t.color)}
+              <text x={RIGHT_X + 79} y={y + 15}>
+                {t.name}
+              </text>
+            </g>
+          );
+        })}
+      {!wagonsOnly && (
+        <g className="legend-hall">
+          <rect x={RIGHT_X} y={hallY} width={HALL_ICON.w} height={HALL_ICON.h} fill={hall.fill} stroke={OUTLINE_COLOR} />
+          <line
+            x1={RIGHT_X + HALL_ICON.wallFromLeft}
+            y1={hallY}
+            x2={RIGHT_X + HALL_ICON.wallFromLeft}
+            y2={hallY + HALL_ICON.h}
+            stroke={OUTLINE_COLOR}
+          />
+          <rect x={RIGHT_X + 11} y={hallY + 18} width={57} height={32} fill={hall.channelFill} stroke={OUTLINE_COLOR} />
+          <path
+            d={`M${RIGHT_X - 5} ${hallY + 30}H${RIGHT_X + 80}M${RIGHT_X - 5} ${hallY + 38}H${RIGHT_X + 80}`}
+            stroke={RAIL_COLOR}
+            strokeWidth={1.5}
+          />
+          <text x={RIGHT_X + HALL_ICON.w + 12} y={hallY + 27}>
+            {hall.label}
+          </text>
+        </g>
+      )}
     </g>
   );
 }

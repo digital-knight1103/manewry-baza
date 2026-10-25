@@ -14,7 +14,7 @@ Specyfikacja: [`docs/SPEC.md`](docs/SPEC.md).
 - [x] E2 — tabor i tryb Edycja (rozstawianie pojazdów, szybkie wypełnienie, liczniki wagonów)
 - [x] E3 — silnik ruchu + testy
 - [x] E4 — tryb Jazda (sterowanie, rozjazdy, „Ustaw drogę”, sprzęganie, cofnij/ponów)
-- [ ] E5 — scenariusze
+- [x] E5 — scenariusze (odtwarzanie z animacją i podpisami, nagrywanie, edycja kroków, eksport/import)
 - [ ] E6 — prezentacja
 
 ## Uruchomienie lokalne
@@ -41,6 +41,8 @@ npm run lint     # ESLint
 - Stykające się pojazdy są sprzęgane automatycznie (przełącznik w panelu).
 - Stan stacji zapisuje się automatycznie w przeglądarce (localStorage) w formacie
   `initialState` scenariusza; „Wczytaj stan początkowy scenariusza” przywraca przykład.
+- „Zapisz jako stan początkowy scenariusza” zapisuje bieżący stan stacji do scenariusza wybranego
+  w trybie Scenariusz (tylko edytowalnego).
 
 ## Tryb Jazda — ręczne manewry
 - **Pojazd prowadzący:** kliknij lokomotywę lub shunter (żółta poświata + czerwona strzałka
@@ -58,6 +60,34 @@ npm run lint     # ESLint
 - **Zjedź ze stacji:** skład na końcu toru 3 może opuścić schemat.
 - **Cofnij / Ponów:** Ctrl+Z / Ctrl+Y (także w trybie Edycja). „Reset do stanu początkowego”
   przywraca stan z chwili wejścia w tryb Jazda.
+
+## Tryb Scenariusz — odtwarzanie i nagrywanie
+- **Lista scenariuszy** (panel boczny): wybór, **Nowy** (stan początkowy = bieżący stan stacji),
+  **Duplikuj**, **Zmień nazwę**, **Usuń**. Scenariusze wbudowane (`src/data/scenarios/*.json`,
+  oznaczone 🔒) są tylko do odczytu — „Duplikuj” tworzy edytowalną kopię. Edytowalne scenariusze
+  zapisują się automatycznie w przeglądarce.
+- **Eksport / Import JSON:** „Eksport” zapisuje bieżący scenariusz, „Eksport wszystkich” — komplet
+  w jednym pliku; „Import…” przyjmuje oba formaty (scenariusz o tym samym id jest zastępowany,
+  wbudowanego nie da się nadpisać — dostaje nowe id).
+- **Odtwarzanie** (pasek na dole): ⟲ Od początku, ⏮ Poprzedni, ▶ Odtwórz / ⏸ Pauza, ⏭ Następny,
+  prędkość 0,5×–4×. Klawisze: **Spacja** ▶/⏸, **→** następny krok, **←** poprzedni, **Home** od początku.
+  „Następny” animuje jeden krok (drugie kliknięcie w trakcie — od razu koniec kroku). W prawym
+  górnym rogu schematu ramka z tytułem i punktami kroku (jak na slajdach); podczas przejazdu
+  podświetlona jest droga, przy przełożeniu — rozjazd, akcja `highlight` pulsuje wskazane pojazdy/tor.
+- **Skok do kroku:** kliknięcie tytułu kroku na liście pokazuje natychmiast stan po tym kroku
+  (migawki); ▶ przy kroku odtwarza tylko ten krok.
+- **Edycja kroków** (scenariusz edytowalny): ✎ tytuł i punkty opisu (jeden punkt w wierszu),
+  ↑ ↓ kolejność, ✕ usunięcie, „Akcje (n)” — podgląd listy akcji.
+- **Nagrywanie:** „● Nagrywaj” włącza sterowanie jak w trybie Jazda. Pusty scenariusz zaczyna od
+  bieżącego stanu stacji (staje się stanem początkowym), scenariusz z krokami — od swojego końca.
+  Przełożenie rozjazdu, zakończony przejazd (zapisany jako „jedź do” punktu zatrzymania; najechanie
+  z auto-sprzęganiem — jako „dojedź i sprzęgnij”), sprzęgnięcie, rozprzęgnięcie i „Zjedź ze stacji”
+  trafiają do bieżącego (ostatniego) kroku. „Nowy krok” pyta o tytuł i otwiera kolejny krok,
+  „↶ Cofnij akcję” usuwa ostatnią nagraną akcję, „■ Zakończ” kończy nagrywanie.
+- Błędna akcja (np. rozjazd ustawiony przeciwnie, punkt wymagający zmiany kierunku) zatrzymuje
+  odtwarzanie z komunikatem „Krok N, akcja M: …”; kroki za błędem są niedostępne.
+
+Format scenariusza: SPEC rozdz. 10. Wbudowany przykład: `src/data/scenarios/wstawienie-na-naprawe.json`.
 
 ## Układ stacji
 Cały schemat jest sterowany danymi z `src/data/station.json` (węzły, odcinki, rozjazdy, hala,
