@@ -1,4 +1,6 @@
 import { useMemo, type PointerEvent } from 'react';
+import type { ScreenSide } from '../../engine/control';
+import { add, normalize, scale, sub } from '../../engine/geometry';
 import { buildLines, lineOfEdge, linePath } from '../../engine/lines';
 import type { Topology } from '../../engine/topology';
 import type { Point, StationLayout } from '../../engine/types';
@@ -10,6 +12,8 @@ interface Props {
   topo: Topology;
   state: StationState;
   selectedId: string | null;
+  /** Direction arrow next to the driven vehicle. */
+  arrow?: { id: string; side: ScreenSide } | null;
   onVehiclePointerDown?: (id: string, e: PointerEvent<SVGGElement>) => void;
 }
 
@@ -28,7 +32,7 @@ function vehicleTitle(layout: StationLayout, v: Vehicle): string {
 }
 
 /** All vehicles on the schematic plus short coupling bars between coupled neighbours. */
-export function Vehicles({ topo, state, selectedId, onVehiclePointerDown }: Props) {
+export function Vehicles({ topo, state, selectedId, arrow = null, onVehiclePointerDown }: Props) {
   const { layout } = topo;
   const shapes = useMemo(() => {
     const lines = buildLines(topo, state.switches);
@@ -81,6 +85,7 @@ export function Vehicles({ topo, state, selectedId, onVehiclePointerDown }: Prop
           </g>
         );
       })}
+      {arrow && shapes.out.has(arrow.id) && <DirectionArrow path={shapes.out.get(arrow.id)!.path} side={arrow.side} />}
     </g>
   );
 }
@@ -95,6 +100,35 @@ export function VehicleGhost({ path, color, valid }: { path: Point[]; color: str
       stroke={OUTLINE_COLOR}
       strokeDasharray={valid ? undefined : '4 3'}
       strokeWidth={VEHICLE_STROKE}
+      pointerEvents="none"
+    />
+  );
+}
+
+const ARROW = { gap: 3, length: 11, halfWidth: 6.5 };
+
+/** Triangle just beyond the end of a vehicle body, pointing to the screen side it will drive to. */
+function DirectionArrow({ path, side }: { path: Point[]; side: ScreenSide }) {
+  if (path.length < 2) return null;
+  const first = path[0]!;
+  const last = path[path.length - 1]!;
+  const dx = last.x - first.x;
+  // Same convention as the engine: ▶ = right, or down on vertical track.
+  const lastIsRight = Math.abs(dx) > 0.1 ? dx > 0 : last.y > first.y;
+  const atLast = (side === 'right') === lastIsRight;
+  const end = atLast ? last : first;
+  const dir = normalize(atLast ? sub(last, path[path.length - 2]!) : sub(first, path[1]!));
+  const base = add(end, scale(dir, ARROW.gap));
+  const tip = add(base, scale(dir, ARROW.length));
+  const side1 = add(base, { x: -dir.y * ARROW.halfWidth, y: dir.x * ARROW.halfWidth });
+  const side2 = add(base, { x: dir.y * ARROW.halfWidth, y: -dir.x * ARROW.halfWidth });
+  return (
+    <path
+      className="direction-arrow"
+      d={toPath([tip, side1, side2]) + 'Z'}
+      fill="#E53935"
+      stroke="#ffffff"
+      strokeWidth={1}
       pointerEvents="none"
     />
   );

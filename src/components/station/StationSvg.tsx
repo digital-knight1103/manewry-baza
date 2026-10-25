@@ -1,9 +1,11 @@
 import { forwardRef, type PointerEvent, type ReactNode } from 'react';
+import type { ScreenSide, VehicleGap } from '../../engine/control';
 import type { Topology } from '../../engine/topology';
 import type { StationState } from '../../engine/vehicles';
 import { Legend } from '../../ui/Legend';
 import { BufferStop } from './BufferStop';
 import { Counters } from './Counters';
+import { EdgeTargets, GapTargets, RouteHighlight } from './DriveLayers';
 import { Hall } from './Hall';
 import { Labels } from './Labels';
 import { SwitchMarker, SwitchRoute } from './Switch';
@@ -14,17 +16,43 @@ interface Props {
   topo: Topology;
   state: StationState;
   selectedId?: string | null;
+  /** Direction arrow drawn next to the driven vehicle. */
+  driverArrow?: { id: string; side: ScreenSide } | null;
   onVehiclePointerDown?: (id: string, e: PointerEvent<SVGGElement>) => void;
   onPaletteTypePointerDown?: (typeId: string, e: PointerEvent<SVGGElement>) => void;
   /** Pointer down anywhere not handled by a vehicle or palette entry (they stop propagation). */
   onBackgroundPointerDown?: (e: PointerEvent<SVGSVGElement>) => void;
+  onSwitchClick?: (switchId: string) => void;
+  /** Edges of a route to highlight. */
+  routeEdges?: string[] | null;
+  /** Gaps between touching vehicles, clickable to couple / uncouple. */
+  gaps?: VehicleGap[];
+  onGapClick?: (a: string, b: string) => void;
+  /** When set, every edge is a click target (picking a route target). */
+  onEdgePick?: (edgeId: string) => void;
+  className?: string;
   /** Extra overlay drawn on top (drag previews etc.). */
   overlay?: ReactNode;
 }
 
 /** Station schematic drawn entirely from station.json, with the current vehicles. */
 export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
-  { topo, state, selectedId = null, onVehiclePointerDown, onPaletteTypePointerDown, onBackgroundPointerDown, overlay },
+  {
+    topo,
+    state,
+    selectedId = null,
+    driverArrow = null,
+    onVehiclePointerDown,
+    onPaletteTypePointerDown,
+    onBackgroundPointerDown,
+    onSwitchClick,
+    routeEdges,
+    gaps,
+    onGapClick,
+    onEdgePick,
+    className,
+    overlay,
+  },
   ref,
 ) {
   const { layout } = topo;
@@ -33,7 +61,7 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
   return (
     <svg
       ref={ref}
-      className="station-svg"
+      className={['station-svg', className, onEdgePick && 'picking'].filter(Boolean).join(' ')}
       viewBox={layout.viewBox.join(' ')}
       preserveAspectRatio="xMidYMid meet"
       role="img"
@@ -49,6 +77,7 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
       />
       <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} />
       <Hall hall={layout.hall} />
+      {routeEdges && <RouteHighlight topo={topo} edges={routeEdges} />}
       {layout.switches.map((sw) => (
         <SwitchRoute key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} />
       ))}
@@ -62,12 +91,20 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
             <BufferStop key={n.id} topo={topo} node={n} />
           ))}
       </g>
-      {layout.switches.map((sw) => (
-        <SwitchMarker key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} />
-      ))}
       <Labels labels={layout.labels} />
       <Counters layout={layout} state={state} />
-      <Vehicles topo={topo} state={state} selectedId={selectedId} onVehiclePointerDown={onVehiclePointerDown} />
+      <Vehicles
+        topo={topo}
+        state={state}
+        selectedId={selectedId}
+        arrow={driverArrow}
+        onVehiclePointerDown={onVehiclePointerDown}
+      />
+      {gaps && onGapClick && <GapTargets gaps={gaps} onGapClick={onGapClick} />}
+      {layout.switches.map((sw) => (
+        <SwitchMarker key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} onClick={onSwitchClick} />
+      ))}
+      {onEdgePick && <EdgeTargets topo={topo} onEdgePick={onEdgePick} />}
       {overlay}
     </svg>
   );

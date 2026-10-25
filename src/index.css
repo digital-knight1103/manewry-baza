@@ -249,3 +249,112 @@ label.checkbox {
   background: var(--surface);
   border-top: 1px solid var(--border);
 }
+
+/* --- Drive mode --- */
+
+.station {
+  position: relative;
+}
+
+.station-svg.driving .vehicle.editable,
+.station-svg .switch-marker.clickable {
+  cursor: pointer;
+}
+
+.station-svg .switch-marker.clickable:hover .switch-dot {
+  fill: #ffe082;
+}
+
+.station-svg .gap-target.coupled {
+  /* Scissors: clicking the gap uncouples. */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ctext x='2' y='19' font-size='18'%3E%E2%9C%82%3C/text%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+.station-svg .gap-target.uncoupled {
+  cursor: copy;
+}
+
+.station-svg .gap-target:hover {
+  stroke: rgba(255, 196, 0, 0.45);
+}
+
+.station-svg.picking {
+  cursor: crosshair;
+}
+
+.station-svg .edge-target {
+  cursor: crosshair;
+}
+
+.station-svg .edge-target:hover {
+  stroke: rgba(46, 134, 222, 0.35);
+}
+
+.drive-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.side-panel button.drive-button {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 20px;
+  line-height: 1;
+  touch-action: none;
+}
+
+.side-panel button.drive-button.stop {
+  flex: 0.6;
+  font-size: 16px;
+}
+
+.side-panel button.drive-button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.button-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.key-legend {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.key-legend div {
+  display: flex;
+  gap: 8px;
+}
+
+.key-legend dt {
+  min-width: 112px;
+}
+
+.key-legend dd {
+  margin: 0;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0 4px;
+  font: 11px/16px Consolas, monospace;
+  color: var(--text);
+  background: #f4f5f7;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+}

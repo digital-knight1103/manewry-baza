@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { StationSvg } from '../components/station/StationSvg';
 import { VehicleGhost } from '../components/station/Vehicles';
+import { vehicleGaps } from '../engine/control';
 import { findDropPosition, type DropTarget } from '../engine/edit';
 import { buildLines, lineOfEdge, projectOnLine, toU } from '../engine/lines';
 import type { Point } from '../engine/types';
 import { vehicleLength, vehicleType } from '../engine/vehicles';
 import { useAppStore } from '../store/useAppStore';
+import { useDriveStore } from '../store/useDriveStore';
 import { useStationStore } from '../store/useStationStore';
 
 /** Pointer travel (screen px) below which a press on a vehicle counts as a click, not a drag. */
@@ -30,13 +32,19 @@ function trackPointer(onMove: (e: globalThis.PointerEvent) => void, onUp: (e: gl
   window.addEventListener('pointercancel', up);
 }
 
-/** Station schematic with edit-mode interactions (palette drag & drop, selecting and dragging vehicles). */
+/** Station schematic with the interactions of the current mode (edit: palette, dragging; drive: driving, switches, couplings). */
 export function StationView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const editing = useAppStore((s) => s.mode === 'edit');
+  const driving = useAppStore((s) => s.mode === 'drive');
   const topo = useStationStore((s) => s.topo);
   const state = useStationStore((s) => s.state);
   const selectedId = useStationStore((s) => s.selectedId);
+  const driverId = useDriveStore((s) => s.driverId);
+  const side = useDriveStore((s) => s.side);
+  const route = useDriveStore((s) => s.route);
+  const pickingRoute = useDriveStore((s) => s.pickingRoute);
+  const gaps = useMemo(() => (driving ? vehicleGaps(topo, state) : []), [driving, topo, state]);
   const [paletteDrag, setPaletteDrag] = useState<PaletteDrag | null>(null);
 
   const toSvgPoint = (clientX: number, clientY: number): Point => {
@@ -118,6 +126,31 @@ export function StationView() {
       { x: point.x + half, y: point.y },
     ];
     overlay = <VehicleGhost path={path} color={vehicleType(topo.layout, typeId).color} valid={target !== null} />;
+  }
+
+  const drive = useDriveStore.getState();
+  const driverExists = driverId !== null && state.vehicles[driverId] !== undefined;
+
+  if (driving) {
+    return (
+      <StationSvg
+        ref={svgRef}
+        className="driving"
+        topo={topo}
+        state={state}
+        selectedId={driverExists ? driverId : null}
+        driverArrow={driverExists ? { id: driverId, side } : null}
+        onVehiclePointerDown={(id, e) => {
+          e.stopPropagation();
+          drive.clickVehicle(id);
+        }}
+        onSwitchClick={drive.toggleSwitch}
+        routeEdges={route}
+        gaps={gaps}
+        onGapClick={drive.toggleCoupling}
+        onEdgePick={pickingRoute ? drive.routeTo : undefined}
+      />
+    );
   }
 
   return (

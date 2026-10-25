@@ -12,8 +12,8 @@ Specyfikacja: [`docs/SPEC.md`](docs/SPEC.md).
 - [x] E0 — szkielet (Vite + React + TypeScript, ESLint, Vitest, Zustand) i publikacja na GitHub Pages
 - [x] E1 — statyczny schemat stacji rysowany z `src/data/station.json` (tory, łącznik, hala, rozjazdy, etykiety, legenda)
 - [x] E2 — tabor i tryb Edycja (rozstawianie pojazdów, szybkie wypełnienie, liczniki wagonów)
-- [ ] E3 — silnik ruchu + testy
-- [ ] E4 — tryb Jazda
+- [x] E3 — silnik ruchu + testy
+- [x] E4 — tryb Jazda (sterowanie, rozjazdy, „Ustaw drogę”, sprzęganie, cofnij/ponów)
 - [ ] E5 — scenariusze
 - [ ] E6 — prezentacja
 
@@ -41,6 +41,23 @@ npm run lint     # ESLint
 - Stykające się pojazdy są sprzęgane automatycznie (przełącznik w panelu).
 - Stan stacji zapisuje się automatycznie w przeglądarce (localStorage) w formacie
   `initialState` scenariusza; „Wczytaj stan początkowy scenariusza” przywraca przykład.
+
+## Tryb Jazda — ręczne manewry
+- **Pojazd prowadzący:** kliknij lokomotywę lub shunter (żółta poświata + czerwona strzałka
+  kierunku). Kliknięcie wagonu tylko pokazuje informacje o nim w panelu.
+- **Jazda:** przytrzymaj ◀ / ▶ w panelu lub klawisze **←** / **→** — skład jedzie, dopóki
+  trzymasz; **Spacja** = stop. Kierunek jest ekranowy (na łączniku ◀ = w górę-lewo,
+  ▶ = w dół-prawo). Suwak ustawia prędkość animacji.
+- **Rozjazdy:** kliknięcie kółka S1 / X1 / S2 przełącza na następny stan (aktywna droga jest
+  podświetlona, nazwa stanu w podpowiedzi). Zajętego rozjazdu nie da się przełożyć.
+- **Ustaw drogę:** wybierz pojazd, kliknij „Ustaw drogę”, potem tor docelowy — aplikacja ustawia
+  rozjazdy i podświetla drogę. Jeśli po drodze trzeba zmienić kierunek, pasek stanu mówi, gdzie
+  i które rozjazdy przestawić potem (wtedy ponownie „Ustaw drogę”).
+- **Sprzęganie:** kliknięcie przerwy między sprzęgniętymi pojazdami rozprzęga je (kursor ✂),
+  między stykającymi się niesprzęgniętymi — sprzęga. „Auto-sprzęganie” łączy składy przy najechaniu.
+- **Zjedź ze stacji:** skład na końcu toru 3 może opuścić schemat.
+- **Cofnij / Ponów:** Ctrl+Z / Ctrl+Y (także w trybie Edycja). „Reset do stanu początkowego”
+  przywraca stan z chwili wejścia w tryb Jazda.
 
 ## Układ stacji
 Cały schemat jest sterowany danymi z `src/data/station.json` (węzły, odcinki, rozjazdy, hala,

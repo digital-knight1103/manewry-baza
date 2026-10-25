@@ -9,7 +9,7 @@ export const DROP_RADIUS = 30;
 /** Gaps smaller than this are closed so that vehicles touch (and couple). */
 export const SNAP_DISTANCE = 12;
 /** Bodies closer than gap + this are considered touching. */
-const TOUCH_TOLERANCE = 0.5;
+export const TOUCH_TOLERANCE = 0.5;
 
 interface Body {
   id: string;

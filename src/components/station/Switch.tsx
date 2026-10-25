@@ -37,13 +37,25 @@ export function SwitchRoute({ topo, sw, stateIndex }: Props) {
   );
 }
 
-export function SwitchMarker({ topo, sw, stateIndex }: Props) {
+export function SwitchMarker({ topo, sw, stateIndex, onClick }: Props & { onClick?: (switchId: string) => void }) {
   const node = topo.nodes.get(sw.node)!;
   const state = sw.states[stateIndex];
+  const title = `Rozjazd ${sw.id}: ${state?.name ?? '?'}${onClick ? ' – kliknij, aby przełożyć' : ''}`;
   return (
-    <g className="switch-marker" data-switch={sw.id}>
-      <title>{`Rozjazd ${sw.id}: ${state?.name ?? '?'}`}</title>
-      <circle cx={node.x} cy={node.y} r={4.5} fill="#ffffff" stroke={OUTLINE_COLOR} strokeWidth={1.2} />
+    <g
+      className={`switch-marker${onClick ? ' clickable' : ''}`}
+      data-switch={sw.id}
+      onPointerDown={
+        onClick &&
+        ((e) => {
+          e.stopPropagation();
+          onClick(sw.id);
+        })
+      }
+    >
+      <title>{title}</title>
+      {onClick && <circle cx={node.x} cy={node.y} r={11} fill="transparent" />}
+      <circle className="switch-dot" cx={node.x} cy={node.y} r={4.5} fill="#ffffff" stroke={OUTLINE_COLOR} strokeWidth={1.2} />
       <text x={node.x + 7} y={node.y - 7} fontSize={10} fill="#555">
         {sw.id}
       </text>
