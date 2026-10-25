@@ -1,0 +1,93 @@
+{
+  "id": "wstawienie-na-naprawe",
+  "title": "Wstawienie wagonów na naprawę",
+  "_uwaga": "Odtworzone z rysunków 2–4. Offsety w jednostkach schematu od węzła 'from' odcinka; Claude Code może je dostroić, żeby wyglądało jak na slajdach.",
+  "initialState": {
+    "switches": { "S1": 0, "S2": 0, "X1": 0 },
+    "placements": [
+      { "edge": "e63", "startOffset": 2, "vehicles": [
+        { "id": "D1", "type": "wagon_dlugo" }, { "id": "D2", "type": "wagon_dlugo" } ] },
+      { "edge": "e65", "startOffset": 316, "vehicles": [
+        { "id": "PL1", "type": "platforma" },
+        { "id": "D3", "type": "wagon_dlugo" }, { "id": "D4", "type": "wagon_dlugo" } ] },
+      { "edge": "e67", "startOffset": 2, "vehicles": [
+        { "id": "D5", "type": "wagon_dlugo" }, { "id": "D6", "type": "wagon_dlugo" } ] },
+      { "edge": "e69", "startOffset": 55, "vehicles": [
+        { "id": "SH1", "type": "shunter" } ] },
+      { "edge": "e3W", "startOffset": 33, "vehicles": [
+        { "id": "LOK1", "type": "lokomotywa" },
+        { "id": "R1", "type": "wagon_rev" }, { "id": "R2", "type": "wagon_rev" },
+        { "id": "R3", "type": "wagon_rev" }, { "id": "R4", "type": "wagon_rev" } ] }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Wstawienie wagonów na naprawę",
+      "bullets": [
+        "4 wagony za jednym razem",
+        "lokomotywa manewrowa wstawia wagony ze stacji (wahadła) na bazę wagonową"
+      ],
+      "actions": [
+        { "type": "highlight", "vehicles": ["R1", "R2", "R3", "R4"], "ms": 1500 }
+      ]
+    },
+    {
+      "title": "Wjazd składu na tor 63",
+      "bullets": [
+        "lokomotywa wyciąga wagony za rozjazd na torze 3",
+        "następnie przez łącznik wjeżdża na tor 63"
+      ],
+      "actions": [
+        { "type": "driveTo", "vehicle": "LOK1", "edge": "e3E", "offset": 40 },
+        { "type": "setSwitch", "switch": "S2", "state": 1 },
+        { "type": "setSwitch", "switch": "X1", "state": 0 },
+        { "type": "setSwitch", "switch": "S1", "state": 1 },
+        { "type": "driveTo", "vehicle": "LOK1", "edge": "e63", "offset": 113 }
+      ]
+    },
+    {
+      "title": "Odstawienie wagonów na tor 65",
+      "bullets": [
+        "lokomotywa dopycha wagony do platformy z zestawami",
+        "odczepienie lokomotywy i powrót na stację"
+      ],
+      "actions": [
+        { "type": "setSwitch", "switch": "S1", "state": 0 },
+        { "type": "driveAndCouple", "vehicle": "LOK1", "to": "PL1" },
+        { "type": "uncouple", "between": ["LOK1", "R1"] },
+        { "type": "driveTo", "vehicle": "LOK1", "edge": "e63", "offset": 200 },
+        { "type": "setSwitch", "switch": "S1", "state": 1 },
+        { "type": "driveTo", "vehicle": "LOK1", "edge": "e3E", "offset": 250 },
+        { "type": "remove", "vehicles": ["LOK1"] },
+        { "type": "setSwitch", "switch": "S2", "state": 0 }
+      ]
+    },
+    {
+      "title": "Shunter wyjeżdża z hali na tor 63",
+      "bullets": [
+        "przejazd z toru 69 przez tor 67 i łącznik"
+      ],
+      "actions": [
+        { "type": "setSwitch", "switch": "X1", "state": 1 },
+        { "type": "driveTo", "vehicle": "SH1", "edge": "e63", "offset": 305 }
+      ]
+    },
+    {
+      "title": "Etap 1 – wstawienie wagonu na halę",
+      "bullets": [
+        "pracownik obsługujący shuntera wstawia pierwszy wagon na halę"
+      ],
+      "actions": [
+        { "type": "setSwitch", "switch": "S1", "state": 0 },
+        { "type": "driveAndCouple", "vehicle": "SH1", "to": "R1" },
+        { "type": "uncouple", "between": ["R1", "R2"] },
+        { "type": "driveTo", "vehicle": "SH1", "edge": "e63", "offset": 250 },
+        { "type": "setSwitch", "switch": "S1", "state": 1 },
+        { "type": "setSwitch", "switch": "X1", "state": 1 },
+        { "type": "driveTo", "vehicle": "R1", "edge": "e69", "offset": 38 },
+        { "type": "uncouple", "between": ["SH1", "R1"] },
+        { "type": "driveTo", "vehicle": "SH1", "edge": "e67b", "offset": 320 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "name": "Baza wagonowa – bocznica",
+  "viewBox": [0, 0, 1000, 400],
+  "scalePxPerMeter": 2.2,
+  "couplingGapM": 2,
+  "switchFoulingDistance": 20,
+  "_uwaga": "Współrzędne odtworzone z rysunków w docs/img. Punkt X1 – założenie: z łącznika można wjechać na tor 67/69 (do weryfikacji).",
+  "nodes": [
+    { "id": "N63W", "x": 40,  "y": 213, "type": "bufferStop" },
+    { "id": "S1",   "x": 370, "y": 213, "type": "switch" },
+    { "id": "N65E", "x": 835, "y": 213, "type": "bufferStop" },
+    { "id": "N67W", "x": 40,  "y": 270, "type": "bufferStop" },
+    { "id": "X1",   "x": 517, "y": 270, "type": "switch" },
+    { "id": "H1",   "x": 880, "y": 270, "type": "boundary" },
+    { "id": "N69E", "x": 960, "y": 270, "type": "bufferStop" },
+    { "id": "N3W",  "x": 20,  "y": 333, "type": "exit" },
+    { "id": "S2",   "x": 680, "y": 333, "type": "switch" },
+    { "id": "N3E",  "x": 990, "y": 333, "type": "exit" }
+  ],
+  "edges": [
+    { "id": "e63",  "track": "63",      "from": "N63W", "to": "S1" },
+    { "id": "e65",  "track": "65",      "from": "S1",   "to": "N65E" },
+    { "id": "eD1",  "track": "łącznik", "from": "S1",   "to": "X1" },
+    { "id": "eD2",  "track": "łącznik", "from": "X1",   "to": "S2" },
+    { "id": "e67",  "track": "67",      "from": "N67W", "to": "X1" },
+    { "id": "e67b", "track": "67",      "from": "X1",   "to": "H1" },
+    { "id": "e69",  "track": "69",      "from": "H1",   "to": "N69E" },
+    { "id": "e3W",  "track": "3",       "from": "N3W",  "to": "S2" },
+    { "id": "e3E",  "track": "3",       "from": "S2",   "to": "N3E" }
+  ],
+  "boundaries": [
+    { "node": "H1", "connections": [["e67b", "e69"]] }
+  ],
+  "switches": [
+    {
+      "id": "S1", "node": "S1", "default": 0,
+      "states": [
+        { "name": "prosto (63 ↔ 65)",       "connections": [["e63", "e65"]] },
+        { "name": "na łącznik (63 ↔ łącznik)", "connections": [["e63", "eD1"]] }
+      ]
+    },
+    {
+      "id": "S2", "node": "S2", "default": 0,
+      "states": [
+        { "name": "prosto (tor 3)",          "connections": [["e3E", "e3W"]] },
+        { "name": "na łącznik (3E ↔ łącznik)", "connections": [["e3E", "eD2"]] }
+      ]
+    },
+    {
+      "id": "X1", "node": "X1", "default": 0,
+      "states": [
+        { "name": "skrzyżowanie (prosto)",   "connections": [["e67", "e67b"], ["eD1", "eD2"]] },
+        { "name": "łącznik → tor 67/69",      "connections": [["eD1", "e67b"]] }
+      ]
+    }
+  ],
+  "hall": {
+    "label": "Hala z kanałem rewizyjnym i torem",
+    "rect":    { "x": 878, "y": 240, "w": 107, "h": 57 },
+    "wallX": 962,
+    "channel": { "x": 890, "y": 258, "w": 57, "h": 34 },
+    "fill": "#FBE3D6",
+    "channelFill": "#BDBDBD"
+  },
+  "labels": [
+    { "text": "tor 63", "x": 35,  "y": 192 },
+    { "text": "tor 65", "x": 783, "y": 192 },
+    { "text": "tor 67", "x": 35,  "y": 250 },
+    { "text": "tor 69", "x": 895, "y": 232 },
+    { "text": "tor 3",  "x": 42,  "y": 365 }
+  ],
+  "counters": [
+    { "track": "63", "x": 125, "y": 188 },
+    { "track": "65", "x": 672, "y": 180 },
+    { "track": "67", "x": 125, "y": 316 },
+    { "track": "69", "x": 775, "y": 316, "_uwaga": "na rysunku 1 licznik prawej części toru 67 + 69" }
+  ],
+  "vehicleTypes": [
+    { "id": "wagon_dlugo",  "name": "Wagon na naprawę długoterminową", "color": "#7B3A12", "lengthM": 15 },
+    { "id": "wagon_rev",    "name": "Wagon na naprawę REV",            "color": "#1F5F7F", "lengthM": 15 },
+    { "id": "wagon_zdrowy", "name": "Wagon zdrowy",                    "color": "#CDE8F6", "lengthM": 15 },
+    { "id": "platforma",    "name": "Platforma z zestawami",           "color": "#F2AA84", "lengthM": 30 },
+    { "id": "lokomotywa",   "name": "Lokomotywa",                      "color": "#4CD964", "lengthM": 25, "powered": true },
+    { "id": "shunter",      "name": "Shunter",                         "color": "#4CD964", "lengthM": 3,  "powered": true, "maxWagons": 4 }
+  ]
+}
