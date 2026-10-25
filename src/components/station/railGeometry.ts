@@ -1,6 +1,6 @@
 import { add, intersectLines, isParallel, normal, normalize, scale, sub, type Vec } from '../../engine/geometry';
 import { directionAwayFrom, edgePolyline, pointAt, type Topology } from '../../engine/topology';
-import type { Point } from '../../engine/types';
+import type { Point, SwitchDef } from '../../engine/types';
 
 /**
  * Direction along which the rails of `edgeId` are cut at `nodeId`: the direction of the first
@@ -83,4 +83,14 @@ export function offsetPolyline(points: Point[], d: number): Point[] {
 /** Closed outline of a band of width 2·halfWidth around a centreline (vehicle body). */
 export function bandOutline(points: Point[], halfWidth: number): Point[] {
   return [...offsetPolyline(points, halfWidth), ...offsetPolyline(points, -halfWidth).reverse()];
+}
+
+/**
+ * Edges the blades of the active state point along: of each connected pair the edge used by
+ * fewer states (the branch, not the common trunk); on a tie the second one.
+ */
+export function bladeEdges(sw: SwitchDef, stateIndex: number): string[] {
+  const uses = new Map<string, number>();
+  for (const s of sw.states) for (const e of new Set(s.connections.flat())) uses.set(e, (uses.get(e) ?? 0) + 1);
+  return (sw.states[stateIndex]?.connections ?? []).map(([a, b]) => ((uses.get(a) ?? 0) < (uses.get(b) ?? 0) ? a : b));
 }

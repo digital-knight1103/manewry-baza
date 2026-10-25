@@ -3,6 +3,7 @@ import { areCoupled, consistOf, touchingNeighbours, type FillDirection } from '.
 import { vehicleType } from '../engine/vehicles';
 import { useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
+import { Icon } from './icons';
 
 const DIRECTIONS: { id: FillDirection; label: string }[] = [
   { id: 'auto', label: 'do najbliższego końca toru' },
@@ -144,7 +145,7 @@ function SelectedVehicle() {
         {consist.length > 1 && <p className="muted">Skład: {consist.join(' – ')}</p>}
       </div>
       <button type="button" className="danger" onClick={() => removeVehicle(v.id)}>
-        Usuń (Del)
+        <Icon name="trash" /> Usuń (Del)
       </button>
     </section>
   );

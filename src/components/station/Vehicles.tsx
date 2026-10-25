@@ -1,12 +1,15 @@
-import { useMemo, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { ScreenSide } from '../../engine/control';
 import { add, normalize, scale, sub } from '../../engine/geometry';
 import { buildLines, lineOfEdge, linePath } from '../../engine/lines';
 import type { Topology } from '../../engine/topology';
 import type { Point, StationLayout } from '../../engine/types';
-import { bodyOnLine, couplingGap, vehicleType, type StationState, type Vehicle } from '../../engine/vehicles';
+import { bodyOnLine, couplingGap, vehicleLength, vehicleType, type StationState, type Vehicle } from '../../engine/vehicles';
 import { bandOutline, toPath } from './railGeometry';
 import { OUTLINE_COLOR, PULSE_COLOR, SELECTION_COLOR, VEHICLE_HEIGHT, VEHICLE_STROKE } from './style';
+import { artKind, artOutline } from './artKind';
+import { VehicleArt } from './VehicleArt';
+import { advanceMotion, coupledPairs, frameOf, type VehicleFrame, type VehicleMotion } from './vehicleMotion';
 
 interface Props {
   topo: Topology;
@@ -16,6 +19,8 @@ interface Props {
   arrow?: { id: string; side: ScreenSide } | null;
   /** Vehicles drawn with a pulsing highlight (scenario playback). */
   pulseIds?: string[];
+  /** Detailed drawings (bogies, cab, wheelsets) instead of plain coloured bands. */
+  detailed?: boolean;
   onVehiclePointerDown?: (id: string, e: PointerEvent<SVGGElement>) => void;
 }
 
@@ -28,13 +33,93 @@ interface Shape {
   lineId: string;
 }
 
+/** Wheel radius of the detailed drawings (for the rotation per distance travelled). */
+const WHEEL_R = 2.5;
+/** How long the flash at a coupling / uncoupling lasts (matches the CSS animation). */
+const FLASH_MS = 700;
+/** More coupling changes at once than this are a jump (scenario step, undo), not a manoeuvre. */
+const FLASH_MAX = 3;
+
+interface Flash {
+  key: string;
+  at: Point;
+}
+
 function vehicleTitle(layout: StationLayout, v: Vehicle): string {
   const t = vehicleType(layout, v.type);
   return `${v.id} – ${t.name}${v.number ? `, nr ${v.number}` : ''}`;
 }
 
+/** Point between the facing ends of two vehicle bodies. */
+function gapPoint(p: Shape, q: Shape): Point {
+  const ends = (s: Shape) => [s.path[0]!, s.path[s.path.length - 1]!];
+  let best: [Point, Point] = [p.path[0]!, q.path[0]!];
+  let bestD = Infinity;
+  for (const a of ends(p))
+    for (const b of ends(q)) {
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < bestD) {
+        bestD = d;
+        best = [a, b];
+      }
+    }
+  return { x: (best[0].x + best[1].x) / 2, y: (best[0].y + best[1].y) / 2 };
+}
+
+/**
+ * Animation state of the detailed drawings (wheel rotation, lights, cab end), advanced whenever
+ * a new station state is rendered. Recomputed only for a new state object, so a repeated render
+ * of the same state (StrictMode) does not turn the wheels twice.
+ */
+function useMotion(state: StationState, frames: Map<string, VehicleFrame>): Map<string, VehicleMotion> {
+  const ref = useRef<{ state: StationState | null; motion: Map<string, VehicleMotion> }>({ state: null, motion: new Map() });
+  if (ref.current.state !== state) {
+    const neighbourSide = (id: string): 1 | -1 | 0 => {
+      const consist = state.consists.find((c) => c.includes(id));
+      const f = frames.get(id);
+      if (!consist || consist.length < 2 || !f) return 0;
+      let sum = 0;
+      for (const other of consist) {
+        const g = frames.get(other);
+        if (other === id || !g) continue;
+        sum += (g.centre.x - f.centre.x) * f.axis.x + (g.centre.y - f.centre.y) * f.axis.y;
+      }
+      return sum > 0 ? 1 : sum < 0 ? -1 : 0;
+    };
+    ref.current = { state, motion: advanceMotion(ref.current.motion, frames, neighbourSide, WHEEL_R) };
+  }
+  return ref.current.motion;
+}
+
+/** Short flashes where vehicles have just been coupled or uncoupled. */
+function useCouplingFlashes(consists: string[][], shapes: Map<string, Shape>): Flash[] {
+  const [flashes, setFlashes] = useState<Flash[]>([]);
+  const prev = useRef<{ pairs: Set<string>; shapes: Map<string, Shape> } | null>(null);
+  useEffect(() => {
+    const pairs = coupledPairs(consists);
+    const before = prev.current;
+    prev.current = { pairs, shapes };
+    if (!before) return;
+    const changed = [...pairs].filter((p) => !before.pairs.has(p)).concat([...before.pairs].filter((p) => !pairs.has(p)));
+    if (changed.length === 0 || changed.length > FLASH_MAX) return;
+    const now = Date.now();
+    const added: Flash[] = [];
+    for (const pair of changed) {
+      const [a, b] = pair.split('|') as [string, string];
+      const p = shapes.get(a) ?? before.shapes.get(a);
+      const q = shapes.get(b) ?? before.shapes.get(b);
+      if (p && q) added.push({ key: `${pair}@${now}`, at: gapPoint(p, q) });
+    }
+    if (added.length === 0) return;
+    setFlashes((f) => [...f, ...added]);
+    // Not cleared on the next change: the flash must finish even while the train keeps moving.
+    window.setTimeout(() => setFlashes((f) => f.filter((x) => !added.includes(x))), FLASH_MS);
+  }, [consists, shapes]);
+  return flashes;
+}
+
 /** All vehicles on the schematic plus short coupling bars between coupled neighbours. */
-export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [], onVehiclePointerDown }: Props) {
+export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [], detailed = false, onVehiclePointerDown }: Props) {
   const { layout } = topo;
   const shapes = useMemo(() => {
     const lines = buildLines(topo, state.switches);
@@ -46,6 +131,10 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
     }
     return { out, lines };
   }, [topo, layout, state]);
+
+  const frames = useMemo(() => new Map([...shapes.out].map(([id, s]) => [id, frameOf(s.path)])), [shapes]);
+  const motion = useMotion(state, frames);
+  const flashes = useCouplingFlashes(state.consists, shapes.out);
 
   const couplings = useMemo(() => {
     const bars: { key: string; path: Point[] }[] = [];
@@ -65,20 +154,48 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
   }, [topo, layout, state.consists, shapes]);
 
   return (
-    <g className="vehicles">
+    <g className={`vehicles${detailed ? ' detailed' : ''}`}>
       {couplings.map((c) => (
-        <path key={c.key} d={toPath(c.path)} stroke={OUTLINE_COLOR} strokeWidth={2} fill="none" />
+        <path key={c.key} d={toPath(c.path)} stroke={OUTLINE_COLOR} strokeWidth={detailed ? 1.6 : 2} fill="none" />
       ))}
       {[...shapes.out.values()].map(({ vehicle: v, path }) => {
-        const outline = toPath(bandOutline(path, VEHICLE_HEIGHT / 2)) + 'Z';
         const selected = v.id === selectedId;
+        const pulse = pulseIds.includes(v.id);
+        const type = vehicleType(layout, v.type);
+        const groupProps = {
+          className: `vehicle${onVehiclePointerDown ? ' editable' : ''}`,
+          'data-vehicle': v.id,
+          onPointerDown: onVehiclePointerDown && ((e: PointerEvent<SVGGElement>) => onVehiclePointerDown(v.id, e)),
+        };
+        if (detailed) {
+          const f = frames.get(v.id)!;
+          const m = motion.get(v.id);
+          const kind = artKind(type);
+          const length = vehicleLength(layout, v.type);
+          const box = artOutline(kind, length);
+          return (
+            <g
+              key={v.id}
+              {...groupProps}
+              transform={`translate(${f.centre.x.toFixed(2)} ${f.centre.y.toFixed(2)}) rotate(${f.angleDeg.toFixed(2)})`}
+            >
+              <title>{vehicleTitle(layout, v)}</title>
+              {selected && <rect {...box} fill="none" stroke={SELECTION_COLOR} strokeWidth={4} strokeOpacity={0.9} />}
+              <VehicleArt
+                kind={kind}
+                length={length}
+                color={type.color}
+                wheelAngle={m?.wheel ?? 0}
+                facing={m?.facing ?? 1}
+                light={type.powered ? (m?.dir ?? 0) : 0}
+              />
+              {pulse && <rect className="pulse" {...box} fill="none" stroke={PULSE_COLOR} strokeWidth={3.5} />}
+            </g>
+          );
+        }
+        const outline = toPath(bandOutline(path, VEHICLE_HEIGHT / 2)) + 'Z';
         return (
-          <g
-            key={v.id}
-            className={`vehicle${onVehiclePointerDown ? ' editable' : ''}`}
-            data-vehicle={v.id}
-            onPointerDown={onVehiclePointerDown && ((e) => onVehiclePointerDown(v.id, e))}
-          >
+          <g key={v.id} {...groupProps}>
             <title>{vehicleTitle(layout, v)}</title>
             {selected && (
               <path
@@ -90,13 +207,14 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
                 strokeLinejoin="round"
               />
             )}
-            <path d={outline} fill={vehicleType(layout, v.type).color} stroke={OUTLINE_COLOR} strokeWidth={VEHICLE_STROKE} />
-            {pulseIds.includes(v.id) && (
-              <path className="pulse" d={outline} fill="none" stroke={PULSE_COLOR} strokeWidth={6} strokeLinejoin="round" />
-            )}
+            <path d={outline} fill={type.color} stroke={OUTLINE_COLOR} strokeWidth={VEHICLE_STROKE} />
+            {pulse && <path className="pulse" d={outline} fill="none" stroke={PULSE_COLOR} strokeWidth={6} strokeLinejoin="round" />}
           </g>
         );
       })}
+      {flashes.map((f) => (
+        <circle key={f.key} className="couple-flash" cx={f.at.x} cy={f.at.y} r={10} pointerEvents="none" />
+      ))}
       {arrow && shapes.out.has(arrow.id) && <DirectionArrow path={shapes.out.get(arrow.id)!.path} side={arrow.side} />}
     </g>
   );

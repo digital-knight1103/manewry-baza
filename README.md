@@ -22,6 +22,17 @@ Specyfikacja: [`docs/SPEC.md`](docs/SPEC.md).
 Pasek u góry przełącza tryby: **Edycja | Jazda | Scenariusz**, a przycisk **▶ Prezentacja**
 uruchamia pokaz wybranego scenariusza.
 
+**Widok: schematyczny / szczegółowy** (pasek u góry) zmienia wygląd taboru. Szczegółowy (domyślny)
+rysuje wagony z wózkami, kołami, zderzakami i sprzęgami, platformę z zestawami kołowymi na ramie,
+lokomotywę z kabiną, maską i światłem po stronie kierunku jazdy oraz shunter w wyróżniającej
+obwódce. Koła kręcą się podczas jazdy, a sprzęgnięcie i rozprzęgnięcie pokazuje krótkie mignięcie.
+Schematyczny to kolorowe prostokąty jak na rysunkach w `docs/img/`. Wybór zapamiętuje przeglądarka,
+dotyczy też prezentacji. Kolory w obu widokach pochodzą z legendy (`station.json`).
+
+Na schemacie rozjazdy mają iglicę (bursztynowy klin) wskazującą ustawiony kierunek, a nieużywana
+gałąź ma przerwę w szynach. Ślepe końce torów kończą kozły oporowe, końce toru 3 – strzałki
+„do stacji”.
+
 | Tryb | Do czego służy |
 |---|---|
 | **Edycja** | rozstawianie taboru na torach (stan początkowy) |
@@ -54,7 +65,11 @@ Pilot do prezentacji wysyła PageUp / PageDown, więc działa bez konfiguracji.
 ### Tryb Prezentacja
 - Uruchomienie: **▶ Prezentacja** w pasku górnym lub w panelu trybu Scenariusz (przy wybranym
   scenariuszu z krokami). Aplikacja przechodzi na pełny ekran, panele i paski edycji znikają.
-- Ekran tytułowy z nazwą scenariusza, potem kolejne kroki, na końcu ekran „Koniec”.
+- Ekran tytułowy z nazwą scenariusza, potem kolejne kroki, na końcu ekran „Koniec”. Ramka opisu kroku
+  płynnie przechodzi (przenikanie) do następnego kroku.
+- **Logo firmy:** jeśli istnieje plik `docs/img/logo.png`, prezentacja pokazuje je na ekranie
+  tytułowym i w lewym dolnym rogu. Bez tego pliku logo się nie pojawia. Po podmianie pliku
+  potrzebny jest nowy build (push na `main`).
 - U góry legenda (kolory i nazwy taboru z `station.json`), w prawym górnym rogu ramka z tytułem
   i punktami kroku, jak na slajdach. Pod nimi duży schemat dopasowany do ekranu: 16:9 i 4:3,
   rzutniki 1280×720 i 1920×1080. Tekst skaluje się z ekranem, żeby był czytelny z końca sali.
@@ -102,7 +117,7 @@ Pilot do prezentacji wysyła PageUp / PageDown, więc działa bez konfiguracji.
 
 ### Tryb Scenariusz: odtwarzanie, nagrywanie, edycja
 - **Lista scenariuszy:** wybór, **Nowy** (stan początkowy = bieżący stan stacji), **Duplikuj**,
-  **Zmień nazwę**, **Usuń**. Scenariusze wbudowane (🔒) są tylko do odczytu; „Duplikuj” tworzy
+  **Zmień nazwę**, **Usuń**. Scenariusze wbudowane (na liście z dopiskiem „(wbudowany)”) są tylko do odczytu; „Duplikuj” tworzy
   ich edytowalną kopię. Edytowalne scenariusze zapisują się automatycznie w przeglądarce.
 - **Odtwarzanie** (pasek na dole): ⟲ Od początku, ⏮ Poprzedni, ▶ Odtwórz / ⏸ Pauza, ⏭ Następny,
   prędkość 0,5×–4× (ta prędkość obowiązuje też w prezentacji). W trakcie przejazdu podświetlona
@@ -139,7 +154,7 @@ bezpośrednim):
    są wczytywane automatycznie, kod nie wymaga zmian. Pole `id` musi być unikalne, bo staje się
    częścią linku `#/prezentacja/<id>`.
 3. `npm test` (testy sprawdzają, że scenariusze wbudowane odtwarzają się bez błędów), commit,
-   push. Po wdrożeniu scenariusz jest dostępny online z kłódką 🔒.
+   push. Po wdrożeniu scenariusz jest dostępny online jako „(wbudowany)”.
 
 Format pliku i lista akcji: [SPEC rozdz. 10](docs/SPEC.md#10-format-scenariusza).
 Przykład: [`src/data/scenarios/wstawienie-na-naprawe.json`](src/data/scenarios/wstawienie-na-naprawe.json).
@@ -195,6 +210,8 @@ npm run lint     # ESLint
 - [x] E4 – tryb Jazda
 - [x] E5 – scenariusze (odtwarzanie, nagrywanie, edycja kroków, eksport/import)
 - [x] E6 – tryb Prezentacja, link bezpośredni, README
+- [x] E7 – dopracowanie wyglądu: szczegółowe rysunki taboru, tory z podkładami, iglice, kozły,
+  hala, tabliczki torów, spójna paleta i krój Inter, ikony, logo w prezentacji
 
 ## Publikacja
 Każdy push na `main` uruchamia `.github/workflows/deploy.yml` (lint, testy, build, deploy).

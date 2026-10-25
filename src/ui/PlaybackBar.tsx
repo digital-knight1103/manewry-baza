@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { formatCount, STEP } from '../engine/counters';
 import { PLAYBACK_SPEEDS, useScenarioStore } from '../store/useScenarioStore';
 import { usePlaybackAnimation } from './playbackAnimation';
+import { Icon } from './icons';
 
 const isTyping = (target: EventTarget | null) => {
   const el = target as HTMLElement | null;
@@ -53,22 +54,22 @@ export function PlaybackBar() {
   return (
     <div className="playback-bar">
       <button type="button" onClick={store.restart} disabled={none} title="Od początku (Home)">
-        ⟲ Od początku
+        <Icon name="restart" /> Od początku
       </button>
       <button type="button" onClick={store.prev} disabled={none || (position === 0 && !playback)} title="Poprzedni krok (←)">
-        ⏮ Poprzedni
+        <Icon name="prev" /> Poprzedni
       </button>
       {running ? (
         <button type="button" className="primary" onClick={store.pause} title="Pauza (Spacja)">
-          ⏸ Pauza
+          <Icon name="pause" /> Pauza
         </button>
       ) : (
         <button type="button" className="primary" onClick={store.play} disabled={none} title="Odtwórz (Spacja)">
-          ▶ Odtwórz
+          <Icon name="play" /> Odtwórz
         </button>
       )}
       <button type="button" onClick={store.next} disabled={none || (position >= steps && !animating)} title="Następny krok (→)">
-        ⏭ Następny
+        <Icon name="next" /> Następny
       </button>
       <label className="speed">
         Prędkość
@@ -89,7 +90,7 @@ export function PlaybackBar() {
       </span>
       {error && (
         <span className="playback-error" title={error.message}>
-          ⚠ {error.message}
+          <Icon name="warning" /> {error.message}
         </span>
       )}
     </div>

@@ -1,11 +1,12 @@
 import type { PointerEvent } from 'react';
-import { consistAtExit, sideArrow, type ScreenSide } from '../engine/control';
+import { consistAtExit, type ScreenSide } from '../engine/control';
 import { areCoupled, consistOf, touchingNeighbours } from '../engine/edit';
 import { formatWagonCount } from '../engine/counters';
 import { isWagon, vehicleType } from '../engine/vehicles';
 import { SPEED_DEFAULT, SPEED_MAX, SPEED_MIN, useDriveStore } from '../store/useDriveStore';
 import { useStationStore } from '../store/useStationStore';
 import { useDriveControls } from './keyboard';
+import { Icon } from './icons';
 
 /** Side panel of the drive mode: driven vehicle, controls, routes, history, vehicle info. Also used while recording a scenario (without history). */
 export function DrivePanel({ history = true }: { history?: boolean }) {
@@ -86,11 +87,15 @@ function Controls() {
     <section>
       <h2>Jazda</h2>
       <div className="drive-buttons">
-        <button {...holdButton('left')}>{sideArrow('left')}</button>
-        <button type="button" className="drive-button stop" disabled={!hasDriver} title="Stop (Spacja)" onClick={() => drive.setThrottle(null)}>
-          ■
+        <button {...holdButton('left')} aria-label="Jedź w lewo">
+          <Icon name="left" />
         </button>
-        <button {...holdButton('right')}>{sideArrow('right')}</button>
+        <button type="button" className="drive-button stop" disabled={!hasDriver} title="Stop (Spacja)" onClick={() => drive.setThrottle(null)} aria-label="Stop">
+          <Icon name="stop" />
+        </button>
+        <button {...holdButton('right')} aria-label="Jedź w prawo">
+          <Icon name="right" />
+        </button>
       </div>
       <label className="stacked">
         <span>
@@ -118,10 +123,10 @@ function Controls() {
           title="Wybierz tor docelowy – aplikacja ustawi rozjazdy"
           onClick={pickingRoute ? drive.cancelRoutePick : drive.startRoutePick}
         >
-          {pickingRoute ? 'Kliknij tor docelowy… (Esc – anuluj)' : 'Ustaw drogę'}
+          <Icon name="route" /> {pickingRoute ? 'Kliknij tor docelowy… (Esc – anuluj)' : 'Ustaw drogę'}
         </button>
         <button type="button" disabled={!atExit} title="Skład stojący na końcu toru 3 opuszcza stację" onClick={drive.leaveStation}>
-          Zjedź ze stacji
+          <Icon name="exit" /> Zjedź ze stacji
         </button>
       </div>
     </section>
@@ -138,14 +143,14 @@ function History() {
       <h2>Historia</h2>
       <div className="button-row">
         <button type="button" disabled={!canUndo} onClick={drive.undo} title="Ctrl+Z">
-          ↶ Cofnij
+          <Icon name="undo" /> Cofnij
         </button>
         <button type="button" disabled={!canRedo} onClick={drive.redo} title="Ctrl+Y">
-          ↷ Ponów
+          <Icon name="redo" /> Ponów
         </button>
       </div>
       <button type="button" className="danger" disabled={!hasStart} onClick={drive.reset} title="Stan z chwili wejścia w tryb Jazda">
-        Reset do stanu początkowego
+        <Icon name="restart" /> Reset do stanu początkowego
       </button>
     </section>
   );

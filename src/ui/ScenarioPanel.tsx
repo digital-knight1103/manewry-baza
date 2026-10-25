@@ -7,6 +7,7 @@ import { useStationStore } from '../store/useStationStore';
 import { describeAction } from './describeAction';
 import { DrivePanel } from './DrivePanel';
 import { copyText, openPresentation, presentationUrl } from './presentationControl';
+import { Icon } from './icons';
 
 /** Saves text as a file through a temporary link. */
 function saveFile({ name, text }: { name: string; text: string }) {
@@ -48,7 +49,7 @@ function ScenarioList() {
         {scenarios.map((s) => (
           <option key={s.id} value={s.id}>
             {s.title}
-            {store.isReadOnly(s.id) ? ' 🔒' : ''}
+            {store.isReadOnly(s.id) ? ' (wbudowany)' : ''}
           </option>
         ))}
       </select>
@@ -62,10 +63,10 @@ function ScenarioList() {
             if (title !== null) store.create(title);
           }}
         >
-          Nowy
+          <Icon name="plus" /> Nowy
         </button>
         <button type="button" disabled={!active} onClick={store.duplicate}>
-          Duplikuj
+          <Icon name="copy" /> Duplikuj
         </button>
         <button
           type="button"
@@ -75,7 +76,7 @@ function ScenarioList() {
             if (title !== null) store.rename(title);
           }}
         >
-          Zmień nazwę
+          <Icon name="edit" /> Zmień nazwę
         </button>
         <button
           type="button"
@@ -83,7 +84,7 @@ function ScenarioList() {
           disabled={!active || readOnly}
           onClick={() => window.confirm(`Usunąć scenariusz „${active?.title}”?`) && store.remove()}
         >
-          Usuń
+          <Icon name="trash" /> Usuń
         </button>
       </div>
       <div className="button-wrap">
@@ -96,17 +97,17 @@ function ScenarioList() {
             if (file) saveFile(file);
           }}
         >
-          Eksport
+          <Icon name="download" /> Eksport
         </button>
         <button
           type="button"
           title="Zapisz wszystkie scenariusze do jednego pliku JSON"
           onClick={() => saveFile(store.exportAll())}
         >
-          Eksport wszystkich
+          <Icon name="download" /> Eksport wszystkich
         </button>
         <button type="button" title="Wczytaj scenariusz lub komplet z pliku JSON" onClick={() => fileRef.current?.click()}>
-          Import…
+          <Icon name="upload" /> Import…
         </button>
         <input
           ref={fileRef}
@@ -141,7 +142,7 @@ function PresentationSection() {
           title="Pełny ekran, sterowanie klawiaturą: → / Spacja dalej, ← wstecz, Esc wyjście"
           onClick={() => openPresentation(active.id)}
         >
-          ▶ Prezentacja
+          <Icon name="present" /> Prezentacja
         </button>
         <button
           type="button"
@@ -151,7 +152,7 @@ function PresentationSection() {
             if (await copyText(presentationUrl(active.id))) useStationStore.getState().setMessage('Skopiowano link do prezentacji');
           }}
         >
-          Kopiuj link do prezentacji
+          <Icon name="link" /> Kopiuj link do prezentacji
         </button>
       </div>
       {!readOnly && (
@@ -188,7 +189,7 @@ function Recording() {
             }
             onClick={store.startRecording}
           >
-            ● Nagrywaj
+            <Icon name="record" /> Nagrywaj
           </button>
           <button
             type="button"
@@ -229,13 +230,13 @@ function Recording() {
             if (title !== null) store.addStep(title);
           }}
         >
-          Nowy krok
+          <Icon name="plus" /> Nowy krok
         </button>
         <button type="button" disabled={!lastStep?.actions.length} onClick={store.undoRecorded}>
-          ↶ Cofnij akcję
+          <Icon name="undo" /> Cofnij akcję
         </button>
         <button type="button" className="primary" onClick={store.stopRecording}>
-          ■ Zakończ
+          <Icon name="stop" /> Zakończ
         </button>
       </div>
     </section>
@@ -322,8 +323,9 @@ function StepItem({ index, step, count, editable, current, reachable, startable,
           title="Odtwórz ten krok"
           onClick={() => store.playStep(index)}
           disabled={!startable}
+          aria-label="Odtwórz ten krok"
         >
-          ▶
+          <Icon name="play" />
         </button>
       </div>
       {editing ? (
@@ -365,7 +367,7 @@ function StepItem({ index, step, count, editable, current, reachable, startable,
       {editable && !editing && (
         <div className="step-tools">
           <button type="button" className="icon" title="W górę" disabled={index === 0} onClick={() => store.moveStep(index, -1)}>
-            ↑
+            <Icon name="up" />
           </button>
           <button
             type="button"
@@ -374,10 +376,10 @@ function StepItem({ index, step, count, editable, current, reachable, startable,
             disabled={index === count - 1}
             onClick={() => store.moveStep(index, 1)}
           >
-            ↓
+            <Icon name="down" />
           </button>
           <button type="button" className="icon" title="Edytuj tytuł i opis" onClick={startEdit}>
-            ✎
+            <Icon name="edit" />
           </button>
           <button
             type="button"
@@ -385,7 +387,7 @@ function StepItem({ index, step, count, editable, current, reachable, startable,
             title="Usuń krok"
             onClick={() => window.confirm(`Usunąć krok „${step.title}”?`) && store.removeStep(index)}
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { stationLayout } from '../../data/station';
 import { buildTopology } from '../../engine/topology';
-import { bandOutline, edgeStub, railLines } from './railGeometry';
+import { bandOutline, bladeEdges, edgeStub, railLines } from './railGeometry';
 
 const topo = buildTopology(stationLayout);
 
@@ -54,5 +54,21 @@ describe('bandOutline', () => {
     expect(outline).toHaveLength(6);
     expect(outline[1]!.x).toBeCloseTo(9);
     expect(outline[1]!.y).toBeCloseTo(1);
+  });
+});
+
+describe('bladeEdges', () => {
+  const sw = {
+    id: 'S',
+    node: 'S',
+    default: 0,
+    states: [
+      { name: 'prosto', connections: [['trunk', 'straight']] as [string, string][] },
+      { name: 'bok', connections: [['trunk', 'branch']] as [string, string][] },
+    ],
+  };
+  it('points the blade along the branch, not along the common trunk', () => {
+    expect(bladeEdges(sw, 0)).toEqual(['straight']);
+    expect(bladeEdges(sw, 1)).toEqual(['branch']);
   });
 });

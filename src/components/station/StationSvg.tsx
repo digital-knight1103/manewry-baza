@@ -3,14 +3,15 @@ import type { ScreenSide, VehicleGap } from '../../engine/control';
 import type { Topology } from '../../engine/topology';
 import type { StationState } from '../../engine/vehicles';
 import { Legend } from '../../ui/Legend';
-import { BufferStop } from './BufferStop';
+import { useAppStore } from '../../store/useAppStore';
+import { BufferStop, ExitArrow } from './BufferStop';
 import { Counters } from './Counters';
 import { EdgeTargets, GapTargets, RouteHighlight, TrackPulse } from './DriveLayers';
 import { Hall } from './Hall';
 import { Labels } from './Labels';
 import { StepCaption } from './StepCaption';
-import { SwitchMarker, SwitchRoute } from './Switch';
-import { Track } from './Track';
+import { SwitchMarker, SwitchPoints, SwitchRoute } from './Switch';
+import { Sleepers, Track } from './Track';
 import { Vehicles } from './Vehicles';
 
 interface Props {
@@ -72,6 +73,7 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
   ref,
 ) {
   const { layout } = topo;
+  const detailed = useAppStore((s) => s.view) === 'detailed';
   const switchStates = state.switches;
   const stateOf = (id: string, fallback: number) => switchStates[id] ?? fallback;
   return (
@@ -85,8 +87,8 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
       onPointerDown={onBackgroundPointerDown}
     >
       <rect x={layout.viewBox[0]} y={layout.viewBox[1]} width={layout.viewBox[2]} height={layout.viewBox[3]} fill="#ffffff" />
-      {legend && <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} wagonsOnly={caption !== null} />}
-      {caption && <StepCaption title={caption.title} bullets={caption.bullets} />}
+      {legend && <Legend layout={layout} onTypePointerDown={onPaletteTypePointerDown} wagonsOnly={caption !== null} detailed={detailed} />}
+      {caption && <StepCaption key={caption.title} title={caption.title} bullets={caption.bullets} />}
       <Hall hall={layout.hall} />
       {routeEdges && <RouteHighlight topo={topo} edges={routeEdges} />}
       {pulseEdges && pulseEdges.length > 0 && <TrackPulse topo={topo} edges={pulseEdges} />}
@@ -95,6 +97,9 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
       ))}
       <g pointerEvents="none">
         {layout.edges.map((e) => (
+          <Sleepers key={e.id} topo={topo} edgeId={e.id} />
+        ))}
+        {layout.edges.map((e) => (
           <Track key={e.id} topo={topo} edgeId={e.id} />
         ))}
         {layout.nodes
@@ -102,6 +107,14 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
           .map((n) => (
             <BufferStop key={n.id} topo={topo} node={n} />
           ))}
+        {layout.nodes
+          .filter((n) => n.type === 'exit')
+          .map((n) => (
+            <ExitArrow key={n.id} topo={topo} node={n} />
+          ))}
+        {layout.switches.map((sw) => (
+          <SwitchPoints key={sw.id} topo={topo} sw={sw} stateIndex={stateOf(sw.id, sw.default)} />
+        ))}
       </g>
       <Labels labels={layout.labels} />
       <Counters layout={layout} state={state} />
@@ -111,6 +124,7 @@ export const StationSvg = forwardRef<SVGSVGElement, Props>(function StationSvg(
         selectedId={selectedId}
         arrow={driverArrow}
         pulseIds={pulseVehicles}
+        detailed={detailed}
         onVehiclePointerDown={onVehiclePointerDown}
       />
       {gaps && onGapClick && <GapTargets gaps={gaps} onGapClick={onGapClick} />}

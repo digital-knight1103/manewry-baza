@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { schematicViewBox } from '../components/station/bounds';
 import { StationSvg } from '../components/station/StationSvg';
-import { OUTLINE_COLOR } from '../components/station/style';
+import { NAVY, OUTLINE_COLOR } from '../components/station/style';
+import { artKind } from '../components/station/artKind';
+import { VehicleArt } from '../components/station/VehicleArt';
 import { formatCount, STEP } from '../engine/counters';
+import type { ScenarioStep } from '../engine/scenario';
 import type { StationLayout } from '../engine/types';
+import { useAppStore } from '../store/useAppStore';
 import { usePresentationStore } from '../store/usePresentationStore';
 import { captionStepIndex, scenarioViewState, useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
 import { usePlaybackAnimation } from './playbackAnimation';
 import { closePresentation, enterFullscreen, fullscreenAvailable, leaveFullscreen } from './presentationControl';
+import { Icon } from './icons';
+
+/** Company logo shown in the corner of the presentation – only if docs/img/logo.png exists. */
+const LOGO: string | undefined = Object.values(
+  import.meta.glob<string>('../../docs/img/logo.png', { eager: true, query: '?url', import: 'default' }),
+)[0];
+
+/** Cross-fade of the step caption (matches the CSS animation). */
+const FADE_MS = 450;
 
 /** The mouse cursor hides after this long without movement. */
 const CURSOR_HIDE_MS = 2000;
@@ -105,6 +118,7 @@ export function Presentation() {
   const position = useScenarioStore((s) => s.position);
   const error = useScenarioStore((s) => s.playback?.error ?? null);
   const viewBox = useMemo(() => schematicViewBox(topo.layout), [topo]);
+  const detailed = useAppStore((s) => s.view) === 'detailed';
 
   if (!scenario) return null;
   const count = scenario.steps.length;
@@ -125,19 +139,8 @@ export function Presentation() {
   return (
     <div className={['presentation', idle && 'cursor-hidden'].filter(Boolean).join(' ')}>
       <header className="pres-header">
-        <PresentationLegend layout={topo.layout} />
-        {step && (
-          <div className="pres-caption" aria-live="polite">
-            <h2>{step.title}</h2>
-            {step.bullets.length > 0 && (
-              <ul>
-                {step.bullets.map((b, i) => (
-                  <li key={i}>{b}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+        <PresentationLegend layout={topo.layout} detailed={detailed} />
+        <CaptionStack step={step} stepKey={step ? `${captionIndex}:${step.title}` : null} label={step ? `Krok ${(captionIndex ?? 0) + 1} z ${count}` : ''} />
       </header>
 
       <div className="pres-stage">
@@ -158,6 +161,7 @@ export function Presentation() {
           <div className="pres-card">
             {screen === 'title' ? (
               <>
+                {LOGO && <img className="pres-card-logo" src={LOGO} alt="Logo firmy" />}
                 <p className="pres-kicker">Scenariusz manewrów</p>
                 <h1>{scenario.title}</h1>
                 <p className="pres-sub">{formatCount(count, STEP)}</p>
@@ -179,8 +183,13 @@ export function Presentation() {
       )}
 
       <footer className="pres-footer">
+        {LOGO && <img className="pres-logo" src={LOGO} alt="Logo firmy" />}
         <span className="pres-step">{screen === 'title' ? 'Start' : `Krok ${stepNo} / ${count}`}</span>
-        {error && <span className="pres-error">⚠ {error.message}</span>}
+        {error && (
+          <span className="pres-error">
+            <Icon name="warning" /> {error.message}
+          </span>
+        )}
         <span className="pres-hint">
           {animating ? '→ dokończ krok' : '→ dalej'} · ← wstecz · Home początek ·{' '}
           {!fullscreen && fullscreenAvailable() ? 'F pełny ekran · ' : ''}Esc wyjście
@@ -193,7 +202,7 @@ export function Presentation() {
             closePresentation();
           }}
         >
-          ✕ Zakończ
+          <Icon name="close" /> Zakończ
         </button>
         <div className="pres-progress" aria-hidden>
           <div style={{ width: `${count ? (100 * done) / count : 0}%` }} />
@@ -204,13 +213,27 @@ export function Presentation() {
 }
 
 /** Legend above the schematic: colours, names and lengths from station.json (wagons | powered stock + hall). */
-function PresentationLegend({ layout }: { layout: StationLayout }) {
-  const entry = (t: StationLayout['vehicleTypes'][number]) => (
-    <li key={t.id}>
-      <span className="pres-swatch" style={{ '--len': t.lengthM * layout.scalePxPerMeter, background: t.color } as CSSProperties} />
-      {t.name}
-    </li>
-  );
+function PresentationLegend({ layout, detailed }: { layout: StationLayout; detailed: boolean }) {
+  const entry = (t: StationLayout['vehicleTypes'][number]) => {
+    const len = t.lengthM * layout.scalePxPerMeter;
+    return (
+      <li key={t.id}>
+        {detailed ? (
+          <svg
+            className="pres-swatch-art"
+            style={{ '--len': len + 10 } as CSSProperties}
+            viewBox={`${-len / 2 - 5} -11 ${len + 10} 22`}
+            aria-hidden
+          >
+            <VehicleArt kind={artKind(t)} length={len} color={t.color} />
+          </svg>
+        ) : (
+          <span className="pres-swatch" style={{ '--len': len, background: t.color } as CSSProperties} />
+        )}
+        {t.name}
+      </li>
+    );
+  };
   const { hall } = layout;
   return (
     <div className="pres-legend" aria-label="Legenda">
@@ -219,13 +242,57 @@ function PresentationLegend({ layout }: { layout: StationLayout }) {
         {layout.vehicleTypes.filter((t) => t.powered).map(entry)}
         <li>
           <svg className="pres-hall-icon" viewBox="-1 -1 108 57" aria-hidden>
-            <rect x={0.5} y={0.5} width={105} height={54} fill={hall.fill} stroke={OUTLINE_COLOR} />
-            <line x1={85} y1={0} x2={85} y2={55} stroke={OUTLINE_COLOR} />
-            <rect x={11} y={18} width={57} height={32} fill={hall.channelFill} stroke={OUTLINE_COLOR} />
+            <defs>
+              <pattern id="pres-hatch" width={5} height={5} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width={5} height={5} fill={hall.channelFill} />
+                <line x1={0} y1={0} x2={0} y2={5} stroke="#6b7280" strokeWidth={1.2} />
+              </pattern>
+            </defs>
+            <rect x={1} y={1} width={104} height={53} rx={3} fill={hall.fill} stroke={NAVY} strokeWidth={1.6} />
+            <rect x={83} y={1} width={4} height={53} fill={NAVY} opacity={0.85} />
+            <rect x={11} y={18} width={57} height={32} rx={1.5} fill="url(#pres-hatch)" stroke={OUTLINE_COLOR} />
           </svg>
           {hall.label}
         </li>
       </ul>
+    </div>
+  );
+}
+
+function Caption({ step, label, className }: { step: ScenarioStep; label: string; className: string }) {
+  return (
+    <div className={`pres-caption ${className}`}>
+      <p className="pres-caption-kicker">{label}</p>
+      <h2>{step.title}</h2>
+      {step.bullets.length > 0 && (
+        <ul>
+          {step.bullets.map((b, i) => (
+            <li key={i}>{b}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Slide-style caption frame of the current step; the previous one fades out while the new one fades in. */
+function CaptionStack({ step, stepKey, label }: { step: ScenarioStep | undefined; stepKey: string | null; label: string }) {
+  const latest = useRef<{ key: string; step: ScenarioStep; label: string } | null>(null);
+  const shown = useRef<{ key: string; step: ScenarioStep; label: string } | null>(null);
+  const [leaving, setLeaving] = useState<{ key: string; step: ScenarioStep; label: string } | null>(null);
+  latest.current = step && stepKey !== null ? { key: stepKey, step, label } : null;
+  useEffect(() => {
+    const before = shown.current;
+    shown.current = latest.current;
+    if (!before || before.key === stepKey) return;
+    setLeaving(before);
+    const timer = window.setTimeout(() => setLeaving(null), FADE_MS);
+    return () => window.clearTimeout(timer);
+  }, [stepKey]);
+  return (
+    <div className="pres-caption-stack" aria-live="polite">
+      {leaving && leaving.key !== stepKey && <Caption key={`out-${leaving.key}`} step={leaving.step} label={leaving.label} className="leaving" />}
+      {step && stepKey !== null && <Caption key={stepKey} step={step} label={label} className="entering" />}
     </div>
   );
 }
