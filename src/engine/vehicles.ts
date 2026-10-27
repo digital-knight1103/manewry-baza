@@ -1,12 +1,17 @@
 import { buildLines, fromU, lineOfEdge, toU, type TrackLine, type TrackPos } from './lines';
 import { defaultSwitchStates, type Topology } from './topology';
-import type { StationLayout, SwitchStates, VehicleType } from './types';
+import type { StationLayout, SwitchStates, VehicleStatusDef, VehicleType } from './types';
+
+/** Wagon lifted on jacks over the inspection pit (see repair.ts). */
+export const REPAIR_STATUS = 'naprawa';
+export type VehicleStatus = typeof REPAIR_STATUS;
 
 export interface Vehicle {
   id: string;
   type: string;
   /** Wagon number shown in the tooltip. */
   number?: string;
+  status?: VehicleStatus;
   /** Position of the vehicle centre. */
   pos: TrackPos;
 }
@@ -23,6 +28,7 @@ export interface PlacementVehicle {
   id: string;
   type: string;
   number?: string;
+  status?: VehicleStatus;
 }
 
 /** Vehicles laid along the edge direction (away from its `from` node) starting at `startOffset`, coupled. */
@@ -55,6 +61,27 @@ export const couplingGap = (layout: StationLayout): number => layout.couplingGap
 
 export const isWagon = (layout: StationLayout, typeId: string): boolean => !vehicleType(layout, typeId).powered;
 
+export function statusDef(layout: StationLayout, status: string): VehicleStatusDef {
+  const def = layout.vehicleStatuses.find((s) => s.id === status);
+  if (!def) throw new Error(`Nieznany status pojazdu ${status}`);
+  return def;
+}
+
+export const inRepair = (v: Vehicle | undefined): boolean => v?.status === REPAIR_STATUS;
+
+/** A vehicle that may drive under a wagon in repair right now: a shunter without coupled wagons. */
+export function passesUnderRepair(layout: StationLayout, state: StationState, id: string): boolean {
+  const v = state.vehicles[id];
+  if (!v || inRepair(v)) return false;
+  const alone = (state.consists.find((c) => c.includes(id))?.length ?? 1) === 1;
+  return alone && vehicleType(layout, v.type).passesUnderRepair === true;
+}
+
+/** Bodies of these two vehicles may overlap: one is a wagon in repair, the other drives under it. */
+export const mayOverlap = (layout: StationLayout, state: StationState, a: string, b: string): boolean =>
+  (inRepair(state.vehicles[a]) && passesUnderRepair(layout, state, b)) ||
+  (inRepair(state.vehicles[b]) && passesUnderRepair(layout, state, a));
+
 export function emptyState(layout: StationLayout): StationState {
   return { switches: defaultSwitchStates(layout), vehicles: {}, consists: [] };
 }
@@ -83,6 +110,11 @@ export function stateFromInitial(topo: Topology, initial: InitialState): Station
     const consist: string[] = [];
     for (const pv of p.vehicles) {
       if (vehicles[pv.id]) throw new Error(`Zduplikowany pojazd ${pv.id}`);
+      if (pv.status !== undefined) {
+        if (pv.status !== REPAIR_STATUS) throw new Error(`Pojazd ${pv.id}: nieznany status ${String(pv.status)}`);
+        if (!isWagon(layout, pv.type)) throw new Error(`Pojazd ${pv.id}: w naprawie może być tylko wagon`);
+        if (p.vehicles.length > 1) throw new Error(`Wagon w naprawie ${pv.id} nie może być sprzęgnięty z innymi pojazdami`);
+      }
       const len = vehicleLength(layout, pv.type);
       const u = along + (sign * len) / 2;
       if (u - len / 2 < -EPS || u + len / 2 > line.length + EPS)
@@ -118,13 +150,18 @@ export function toInitialState(topo: Topology, state: StationState): InitialStat
     return {
       edge: seg.edge,
       startOffset: round(startOffset),
-      vehicles: ordered.map(({ v }) => ({ id: v.id, type: v.type, ...(v.number ? { number: v.number } : {}) })),
+      vehicles: ordered.map(({ v }) => ({
+        id: v.id,
+        type: v.type,
+        ...(v.number ? { number: v.number } : {}),
+        ...(v.status ? { status: v.status } : {}),
+      })),
     };
   });
   return { switches: { ...state.switches }, placements };
 }
 
-/** First pair of vehicles whose bodies (plus coupling gap) overlap on the same line, if any. */
+/** First pair of vehicles whose bodies (plus coupling gap) overlap on the same line, if any (a shunter under a wagon in repair is fine). */
 export function findOverlap(topo: Topology, state: StationState): [string, string] | null {
   const { layout } = topo;
   const gap = couplingGap(layout);
@@ -134,8 +171,10 @@ export function findOverlap(topo: Topology, state: StationState): [string, strin
       .filter((v) => line.segments.some((s) => s.edge === v.pos.edge))
       .map((v) => ({ id: v.id, ...bodyOnLine(layout, line, v) }))
       .sort((x, y) => x.a - y.a);
-    for (let i = 1; i < bodies.length; i++) {
-      if (bodies[i]!.a < bodies[i - 1]!.b + gap - 1e-3) return [bodies[i - 1]!.id, bodies[i]!.id];
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length && bodies[j]!.a < bodies[i]!.b + gap - 1e-3; j++) {
+        if (!mayOverlap(layout, state, bodies[i]!.id, bodies[j]!.id)) return [bodies[i]!.id, bodies[j]!.id];
+      }
     }
   }
   return null;

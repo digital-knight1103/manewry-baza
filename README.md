@@ -115,6 +115,26 @@ Pilot do prezentacji wysyła PageUp / PageDown, więc działa bez konfiguracji.
 - **Cofnij / Ponów:** Ctrl+Z / Ctrl+Y. „Reset do stanu początkowego” przywraca stan z chwili
   wejścia w tryb Jazda.
 
+### Naprawa wagonu (wagon podniesiony w hali)
+![Wagon R1 w naprawie, shunter pod nim; panel z przyciskiem „Zakończ naprawę”](docs/img/naprawa.png)
+
+| Widok szczegółowy | Widok schematyczny |
+|---|---|
+| ![Pudło wagonu na 4 podnośnikach, shunter pod spodem](docs/img/naprawa-hala.png) | ![Czerwony kreskowany prostokąt, shunter pod spodem](docs/img/naprawa-hala-schemat.png) |
+
+- **Rozpocznij naprawę** (panel wagonu w trybach Edycja, Jazda i podczas nagrywania): możliwe
+  tylko dla wagonu stojącego na torze 69 nad kanałem rewizyjnym i rozprzęgniętego ze wszystkimi
+  pojazdami. Jeśli warunki nie są spełnione, pasek stanu mówi dlaczego. Pudło unosi się na
+  4 podnośnikach (ok. 0,5 s), wózki znikają; wagon jest czerwony (legenda: „Wagon w naprawie
+  (podniesiony)”).
+- **Wagon w naprawie** nie da się przesunąć ani sprzęgnąć; auto-sprzęganie go pomija. Licznik
+  toru 69 nadal go liczy.
+- **Przejazd pod wagonem:** sam shunter (bez wagonów) przejeżdża pod podniesionym wagonem
+  w obie strony. Shunter z wagonami i lokomotywa zatrzymują się przed nim z komunikatem
+  „Wagon w naprawie – przejazd tylko samym shunterem”.
+- **Zakończ naprawę:** tylko gdy pod wagonem nic nie stoi. Do wyboru: typ bez zmian albo
+  „Wagon zdrowy”.
+
 ### Tryb Scenariusz: odtwarzanie, nagrywanie, edycja
 - **Lista scenariuszy:** wybór, **Nowy** (stan początkowy = bieżący stan stacji), **Duplikuj**,
   **Zmień nazwę**, **Usuń**. Scenariusze wbudowane (na liście z dopiskiem „(wbudowany)”) są tylko do odczytu; „Duplikuj” tworzy
@@ -138,7 +158,8 @@ Pilot do prezentacji wysyła PageUp / PageDown, więc działa bez konfiguracji.
 3. **● Nagrywaj:** kliknij lokomotywę lub shunter i wykonuj manewry jak w trybie Jazda.
    Do bieżącego kroku zapisują się: przełożenie rozjazdu, zakończony przejazd (jako „jedź do”
    punktu zatrzymania; najechanie z auto-sprzęganiem jako „dojedź i sprzęgnij”), sprzęgnięcie,
-   rozprzęgnięcie i „Zjedź ze stacji”.
+   rozprzęgnięcie, „Zjedź ze stacji” oraz rozpoczęcie / zakończenie naprawy wagonu
+   (akcja `{ "type": "setStatus", "vehicle": "R1", "status": "naprawa" | null, "newType"?: "wagon_zdrowy" }`).
 4. **Nowy krok:** podaj tytuł kolejnego etapu (np. „Etap 2 – …”) i nagrywaj dalej.
    **↶ Cofnij akcję** usuwa ostatnią nagraną akcję, **■ Zakończ** kończy nagrywanie.
 5. Na liście kroków **✎** dopisz punkty opisu, które pojawią się w ramce w prawym górnym rogu.

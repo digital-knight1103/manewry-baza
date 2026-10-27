@@ -1,7 +1,8 @@
 import type { PointerEvent } from 'react';
-import type { StationLayout, VehicleType } from '../engine/types';
+import type { StationLayout, VehicleStatusDef, VehicleType } from '../engine/types';
 import { LABEL_FONT, LABEL_SIZE, NAVY, OUTLINE_COLOR, RAIL_COLOR } from '../components/station/style';
 import { artKind } from '../components/station/artKind';
+import { REPAIR_HATCH_ID } from '../components/station/RepairHatch';
 import { VehicleArt } from '../components/station/VehicleArt';
 
 // Legend placement in schematic units, matching docs/img/01-uklad.png.
@@ -9,6 +10,8 @@ const LEFT_X = 47;
 const RIGHT_X = 531;
 const TOP_Y = 35;
 const ROW_STEP = 33;
+/** The wagon column (types + statuses) must end above the label of track 63. */
+const LEFT_BOTTOM_Y = 172;
 const SWATCH_H = 20;
 const TEXT_GAP = 12;
 const HALL_ICON = { w: 106, h: 55, wallFromLeft: 85 };
@@ -28,6 +31,27 @@ export function Legend({ layout, onTypePointerDown, wagonsOnly = false, detailed
   const scale = layout.scalePxPerMeter;
   const wagons = layout.vehicleTypes.filter((t) => !t.powered);
   const powered = layout.vehicleTypes.filter((t) => t.powered);
+  const statuses = layout.vehicleStatuses;
+  const leftStep = Math.min(ROW_STEP, (LEFT_BOTTOM_Y - TOP_Y) / (wagons.length + statuses.length));
+  // Statuses (wagon in repair) are drawn like a 15 m wagon.
+  const statusLength = (wagons[0]?.lengthM ?? 15) * scale;
+
+  const statusSwatch = (x: number, y: number, s: VehicleStatusDef) =>
+    detailed ? (
+      <g transform={`translate(${x + statusLength / 2} ${y + SWATCH_H / 2 + 3})`}>
+        <VehicleArt kind="wagon" length={statusLength} color={s.color} lift={1} />
+      </g>
+    ) : (
+      <rect
+        x={x}
+        y={y}
+        width={statusLength}
+        height={SWATCH_H}
+        fill={`url(#${REPAIR_HATCH_ID})`}
+        stroke={s.color}
+        strokeWidth={1.5}
+      />
+    );
 
   const swatch = (x: number, y: number, w: number, t: VehicleType) =>
     detailed ? (
@@ -52,13 +76,24 @@ export function Legend({ layout, onTypePointerDown, wagonsOnly = false, detailed
     <g className="legend" fontFamily={LABEL_FONT} fontSize={LABEL_SIZE} fill="#111">
       {wagons.map((t, i) => {
         const w = t.lengthM * scale;
-        const y = TOP_Y + i * ROW_STEP;
+        const y = TOP_Y + i * leftStep;
         return (
           <g key={t.id} {...entryProps(t)}>
             {paletteTitle}
             {swatch(LEFT_X, y, w, t)}
             <text x={LEFT_X + w + TEXT_GAP} y={y + 15}>
               {t.name}
+            </text>
+          </g>
+        );
+      })}
+      {statuses.map((s, i) => {
+        const y = TOP_Y + (wagons.length + i) * leftStep;
+        return (
+          <g key={s.id}>
+            {statusSwatch(LEFT_X, y, s)}
+            <text x={LEFT_X + statusLength + TEXT_GAP} y={y + 15}>
+              {s.name}
             </text>
           </g>
         );

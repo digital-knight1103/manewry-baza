@@ -23,6 +23,11 @@ export function describeAction(topo: Topology, action: Action): string {
       return `Zjazd ze stacji: ${action.vehicles.join(', ')}`;
     case 'wait':
       return `Pauza ${(action.ms / 1000).toLocaleString('pl-PL')} s`;
+    case 'setStatus': {
+      if (action.status) return `${action.vehicle}: rozpoczęcie naprawy (podniesienie na podnośnikach)`;
+      const type = action.newType && topo.layout.vehicleTypes.find((t) => t.id === action.newType);
+      return `${action.vehicle}: zakończenie naprawy${type ? ` → ${type.name}` : ''}`;
+    }
     case 'highlight': {
       const what = [...(action.vehicles ?? []), ...(action.track !== undefined ? [`tor ${action.track}`] : [])];
       return `Wyróżnienie: ${what.join(', ')}`;

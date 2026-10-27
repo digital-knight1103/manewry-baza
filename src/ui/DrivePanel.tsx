@@ -7,6 +7,7 @@ import { SPEED_DEFAULT, SPEED_MAX, SPEED_MIN, useDriveStore } from '../store/use
 import { useStationStore } from '../store/useStationStore';
 import { useDriveControls } from './keyboard';
 import { Icon } from './icons';
+import { RepairControls } from './RepairControls';
 
 /** Side panel of the drive mode: driven vehicle, controls, routes, history, vehicle info. Also used while recording a scenario (without history). */
 export function DrivePanel({ history = true }: { history?: boolean }) {
@@ -181,6 +182,7 @@ function Inspected() {
           : neighbours.map((n) => `${areCoupled(state, v.id, n) ? 'sprzęgnięty z' : 'styka się z'} ${n}`).join(', ')}
       </p>
       {consist.length > 1 && <p className="muted">Skład: {consist.join(' – ')}</p>}
+      <RepairControls vehicleId={v.id} onSetStatus={useDriveStore.getState().setStatus} />
     </section>
   );
 }

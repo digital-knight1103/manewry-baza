@@ -2,10 +2,20 @@
 import { areCoupled, consistOf, couple, removeVehicle, uncouple } from './edit';
 import { buildLines, fromU, lineOfEdge } from './lines';
 import { distanceAlongRoute, drive, type Dir } from './movement';
+import { setStatus } from './repair';
 import { findRouteForVehicle } from './route';
 import { setSwitch, switchDef } from './switches';
 import type { Topology } from './topology';
-import { bodyOnLine, couplingGap, EPS, vehicleLength, type PlacementVehicle, type StationState, type Vehicle } from './vehicles';
+import {
+  bodyOnLine,
+  couplingGap,
+  EPS,
+  vehicleLength,
+  type PlacementVehicle,
+  type StationState,
+  type Vehicle,
+  type VehicleStatus,
+} from './vehicles';
 
 export type Action =
   | { type: 'setSwitch'; switch: string; state: number }
@@ -16,7 +26,9 @@ export type Action =
   | { type: 'spawn'; exit: string; vehicles: PlacementVehicle[] }
   | { type: 'remove'; vehicles: string[] }
   | { type: 'wait'; ms: number }
-  | { type: 'highlight'; vehicles?: string[]; track?: string; ms: number };
+  | { type: 'highlight'; vehicles?: string[]; track?: string; ms: number }
+  /** Start ("naprawa") or end (null) the repair of a wagon; ending may change its type. */
+  | { type: 'setStatus'; vehicle: string; status: VehicleStatus | null; newType?: string };
 
 /** Movement performed by a drive action, so that the UI can animate it from the start state. */
 export interface DriveMotion {
@@ -128,6 +140,9 @@ function execute(topo: Topology, state: StationState, action: Action): ActionRes
         return { state, error: `Nieznany tor ${action.track}` };
       return { state };
     }
+
+    case 'setStatus':
+      return setStatus(topo, state, action.vehicle, action.status, action.newType);
 
     case 'wait':
       return { state };

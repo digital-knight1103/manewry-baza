@@ -2,7 +2,7 @@
 // import / export. Scenarios are plain JSON (SPEC rozdz. 10); every function returns a new object.
 import type { Action } from './actions';
 import type { Scenario, ScenarioStep } from './scenario';
-import type { InitialState, StationState } from './vehicles';
+import { REPAIR_STATUS, type InitialState, type StationState } from './vehicles';
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
@@ -121,9 +121,20 @@ const ACTION_TYPES = new Set<Action['type']>([
   'remove',
   'wait',
   'highlight',
+  'setStatus',
 ]);
 
 const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
+/** Field problems of actions whose data the playback cannot report itself (Polish), or null. */
+function actionFieldProblem(a: Record<string, unknown>): string | null {
+  if (a.type !== 'setStatus') return null;
+  if (typeof a.vehicle !== 'string' || !a.vehicle) return 'setStatus: brak pola „vehicle”';
+  if (a.status !== REPAIR_STATUS && a.status !== null) return `setStatus: „status” musi być "${REPAIR_STATUS}" albo null`;
+  if (a.newType !== undefined && (typeof a.newType !== 'string' || a.status !== null))
+    return 'setStatus: „newType” tylko przy zakończeniu naprawy (status null)';
+  return null;
+}
 
 function toScenario(x: unknown, where: string): Scenario {
   if (!isObject(x) || typeof x.id !== 'string' || !x.id || typeof x.title !== 'string')
@@ -138,6 +149,8 @@ function toScenario(x: unknown, where: string): Scenario {
     st.actions.forEach((a, j) => {
       if (!isObject(a) || !ACTION_TYPES.has(a.type as Action['type']))
         throw new Error(`${where}, krok ${i + 1}, akcja ${j + 1}: nieznany typ akcji`);
+      const problem = actionFieldProblem(a);
+      if (problem) throw new Error(`${where}, krok ${i + 1}, akcja ${j + 1}: ${problem}`);
     });
     const bullets = Array.isArray(st.bullets) ? st.bullets.filter((b): b is string => typeof b === 'string') : [];
     return { title: st.title, bullets, actions: st.actions as Action[] };

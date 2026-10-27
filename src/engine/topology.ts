@@ -84,6 +84,10 @@ export function validateStation(layout: StationLayout): string[] {
     if (!(t.lengthM > 0)) errors.push(`Typ ${t.id}: długość musi być dodatnia`);
     if (!t.idPrefix) errors.push(`Typ ${t.id}: brak idPrefix`);
   }
+  for (const st of layout.vehicleStatuses ?? []) {
+    const after = st.afterType && layout.vehicleTypes.find((t) => t.id === st.afterType);
+    if (st.afterType && (!after || after.powered)) errors.push(`Status ${st.id}: afterType ${st.afterType} nie jest typem wagonu`);
+  }
   for (const c of layout.counters) {
     for (const id of c.edges) if (!edgeIds.has(id)) errors.push(`Licznik: brak odcinka ${id}`);
   }

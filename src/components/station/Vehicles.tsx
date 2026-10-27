@@ -1,13 +1,24 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import type { ScreenSide } from '../../engine/control';
 import { add, normalize, scale, sub } from '../../engine/geometry';
 import { buildLines, lineOfEdge, linePath } from '../../engine/lines';
 import type { Topology } from '../../engine/topology';
 import type { Point, StationLayout } from '../../engine/types';
-import { bodyOnLine, couplingGap, vehicleLength, vehicleType, type StationState, type Vehicle } from '../../engine/vehicles';
+import {
+  bodyOnLine,
+  couplingGap,
+  inRepair,
+  REPAIR_STATUS,
+  statusDef,
+  vehicleLength,
+  vehicleType,
+  type StationState,
+  type Vehicle,
+} from '../../engine/vehicles';
 import { bandOutline, toPath } from './railGeometry';
 import { OUTLINE_COLOR, PULSE_COLOR, SELECTION_COLOR, VEHICLE_HEIGHT, VEHICLE_STROKE } from './style';
 import { artKind, artOutline } from './artKind';
+import { RepairHatch, REPAIR_HATCH_ID } from './RepairHatch';
 import { VehicleArt } from './VehicleArt';
 import { advanceMotion, coupledPairs, frameOf, type VehicleFrame, type VehicleMotion } from './vehicleMotion';
 
@@ -39,6 +50,10 @@ const WHEEL_R = 2.5;
 const FLASH_MS = 700;
 /** More coupling changes at once than this are a jump (scenario step, undo), not a manoeuvre. */
 const FLASH_MAX = 3;
+/** Wagon body rising onto / lowering from the jacks (as LIFT_MS of the scenario playback). */
+const LIFT_MS = 500;
+/** Lift of a wagon in repair in the schematic view (screen units). */
+const SCHEMATIC_LIFT = 4;
 
 interface Flash {
   key: string;
@@ -47,7 +62,38 @@ interface Flash {
 
 function vehicleTitle(layout: StationLayout, v: Vehicle): string {
   const t = vehicleType(layout, v.type);
-  return `${v.id} – ${t.name}${v.number ? `, nr ${v.number}` : ''}`;
+  const status = v.status ? ` – ${statusDef(layout, v.status).name}` : '';
+  return `${v.id} – ${t.name}${v.number ? `, nr ${v.number}` : ''}${status}`;
+}
+
+const easeInOut = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+
+/** 0 → 1 while a wagon is lifted for repair, 1 → 0 while it is lowered (no animation on first render). */
+function useLift(on: boolean): number {
+  const [lift, setLift] = useState(on ? 1 : 0);
+  const current = useRef(lift);
+  useEffect(() => {
+    const from = current.current;
+    const to = on ? 1 : 0;
+    if (from === to) return;
+    const start = performance.now();
+    const duration = LIFT_MS * Math.abs(to - from);
+    let frame = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / duration);
+      current.current = from + (to - from) * easeInOut(k);
+      setLift(current.current);
+      if (k < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [on]);
+  return lift;
+}
+
+/** Renders a vehicle with the current lift of its repair animation. */
+function Lifted({ on, children }: { on: boolean; children: (lift: number) => ReactNode }) {
+  return <>{children(useLift(on))}</>;
 }
 
 /** Point between the facing ends of two vehicle bodies. */
@@ -153,15 +199,24 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
     return bars;
   }, [topo, layout, state.consists, shapes]);
 
+  const repairColor = statusDef(layout, REPAIR_STATUS).color;
+  // Wagons in repair last: a shunter driving under one is drawn beneath the lifted body.
+  const ordered = [...shapes.out.values()].sort((p, q) => Number(inRepair(p.vehicle)) - Number(inRepair(q.vehicle)));
+
   return (
     <g className={`vehicles${detailed ? ' detailed' : ''}`}>
+      <defs>
+        <RepairHatch id={REPAIR_HATCH_ID} color={repairColor} />
+      </defs>
       {couplings.map((c) => (
         <path key={c.key} d={toPath(c.path)} stroke={OUTLINE_COLOR} strokeWidth={detailed ? 1.6 : 2} fill="none" />
       ))}
-      {[...shapes.out.values()].map(({ vehicle: v, path }) => {
+      {ordered.map(({ vehicle: v, path }) => {
         const selected = v.id === selectedId;
         const pulse = pulseIds.includes(v.id);
         const type = vehicleType(layout, v.type);
+        const repair = inRepair(v);
+        const color = repair ? repairColor : type.color;
         const groupProps = {
           className: `vehicle${onVehiclePointerDown ? ' editable' : ''}`,
           'data-vehicle': v.id,
@@ -181,14 +236,19 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
             >
               <title>{vehicleTitle(layout, v)}</title>
               {selected && <rect {...box} fill="none" stroke={SELECTION_COLOR} strokeWidth={4} strokeOpacity={0.9} />}
-              <VehicleArt
-                kind={kind}
-                length={length}
-                color={type.color}
-                wheelAngle={m?.wheel ?? 0}
-                facing={m?.facing ?? 1}
-                light={type.powered ? (m?.dir ?? 0) : 0}
-              />
+              <Lifted on={repair}>
+                {(lift) => (
+                  <VehicleArt
+                    kind={kind}
+                    length={length}
+                    color={color}
+                    wheelAngle={m?.wheel ?? 0}
+                    facing={m?.facing ?? 1}
+                    light={type.powered ? (m?.dir ?? 0) : 0}
+                    lift={lift}
+                  />
+                )}
+              </Lifted>
               {pulse && <rect className="pulse" {...box} fill="none" stroke={PULSE_COLOR} strokeWidth={3.5} />}
             </g>
           );
@@ -197,18 +257,29 @@ export function Vehicles({ topo, state, selectedId, arrow = null, pulseIds = [],
         return (
           <g key={v.id} {...groupProps}>
             <title>{vehicleTitle(layout, v)}</title>
-            {selected && (
-              <path
-                d={outline}
-                fill="none"
-                stroke={SELECTION_COLOR}
-                strokeWidth={7}
-                strokeOpacity={0.85}
-                strokeLinejoin="round"
-              />
-            )}
-            <path d={outline} fill={type.color} stroke={OUTLINE_COLOR} strokeWidth={VEHICLE_STROKE} />
-            {pulse && <path className="pulse" d={outline} fill="none" stroke={PULSE_COLOR} strokeWidth={6} strokeLinejoin="round" />}
+            <Lifted on={repair}>
+              {(lift) => (
+                <g transform={lift > 0 ? `translate(0 ${(-SCHEMATIC_LIFT * lift).toFixed(2)})` : undefined}>
+                  {selected && (
+                    <path
+                      d={outline}
+                      fill="none"
+                      stroke={SELECTION_COLOR}
+                      strokeWidth={7}
+                      strokeOpacity={0.85}
+                      strokeLinejoin="round"
+                    />
+                  )}
+                  <path
+                    d={outline}
+                    fill={repair ? `url(#${REPAIR_HATCH_ID})` : type.color}
+                    stroke={repair ? color : OUTLINE_COLOR}
+                    strokeWidth={repair ? 2 : VEHICLE_STROKE}
+                  />
+                  {pulse && <path className="pulse" d={outline} fill="none" stroke={PULSE_COLOR} strokeWidth={6} strokeLinejoin="round" />}
+                </g>
+              )}
+            </Lifted>
           </g>
         );
       })}

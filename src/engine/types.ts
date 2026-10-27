@@ -88,6 +88,18 @@ export interface VehicleType {
   powered?: boolean;
   /** Shunter only: maximum number of wagons it may move. */
   maxWagons?: number;
+  /** Alone (without wagons) it can drive under a wagon lifted for repair. */
+  passesUnderRepair?: boolean;
+}
+
+/** Status of a vehicle drawn differently from its type, e.g. a wagon lifted on jacks for repair. */
+export interface VehicleStatusDef {
+  id: string;
+  /** Legend entry. */
+  name: string;
+  color: string;
+  /** Type offered when the status ends (besides keeping the current one). */
+  afterType?: string;
 }
 
 export interface StationLayout {
@@ -104,6 +116,7 @@ export interface StationLayout {
   labels: TrackLabel[];
   counters: Counter[];
   vehicleTypes: VehicleType[];
+  vehicleStatuses: VehicleStatusDef[];
 }
 
 /** Current state index of every switch, keyed by switch id. */

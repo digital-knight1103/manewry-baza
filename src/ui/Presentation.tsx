@@ -6,7 +6,7 @@ import { artKind } from '../components/station/artKind';
 import { VehicleArt } from '../components/station/VehicleArt';
 import { formatCount, STEP } from '../engine/counters';
 import type { ScenarioStep } from '../engine/scenario';
-import type { StationLayout } from '../engine/types';
+import type { StationLayout, VehicleStatusDef } from '../engine/types';
 import { useAppStore } from '../store/useAppStore';
 import { usePresentationStore } from '../store/usePresentationStore';
 import { captionStepIndex, scenarioViewState, useScenarioStore } from '../store/useScenarioStore';
@@ -235,9 +235,30 @@ function PresentationLegend({ layout, detailed }: { layout: StationLayout; detai
     );
   };
   const { hall } = layout;
+  const statusLength = (layout.vehicleTypes.find((t) => !t.powered)?.lengthM ?? 15) * layout.scalePxPerMeter;
+  const status = (s: VehicleStatusDef) => (
+    <li key={s.id}>
+      {detailed ? (
+        <svg
+          className="pres-swatch-art"
+          style={{ '--len': statusLength + 10 } as CSSProperties}
+          viewBox={`${-statusLength / 2 - 5} -14 ${statusLength + 10} 25`}
+          aria-hidden
+        >
+          <VehicleArt kind="wagon" length={statusLength} color={s.color} lift={1} />
+        </svg>
+      ) : (
+        <span className="pres-swatch hatched" style={{ '--len': statusLength, background: s.color } as CSSProperties} />
+      )}
+      {s.name}
+    </li>
+  );
   return (
     <div className="pres-legend" aria-label="Legenda">
-      <ul>{layout.vehicleTypes.filter((t) => !t.powered).map(entry)}</ul>
+      <ul>
+        {layout.vehicleTypes.filter((t) => !t.powered).map(entry)}
+        {layout.vehicleStatuses.map(status)}
+      </ul>
       <ul>
         {layout.vehicleTypes.filter((t) => t.powered).map(entry)}
         <li>

@@ -7,7 +7,7 @@ import type { Route } from './route';
 import { setSwitch, switchDef, nodesOnLine, type SwitchResult } from './switches';
 import { pointAt, type Topology } from './topology';
 import type { Point, SwitchStates } from './types';
-import { bodyOnLine, couplingGap, type StationState } from './vehicles';
+import { bodyOnLine, couplingGap, inRepair, type StationState } from './vehicles';
 
 /** Direction of travel as seen on the screen: ◀ or ▶. */
 export type ScreenSide = 'left' | 'right';
@@ -71,7 +71,7 @@ export interface VehicleGap {
   path: Point[];
 }
 
-/** Every pair of neighbouring vehicles that touch (gap ≈ coupling gap), coupled or not. */
+/** Every pair of neighbouring vehicles that touch (gap ≈ coupling gap), coupled or not; wagons in repair are left out. */
 export function vehicleGaps(topo: Topology, state: StationState): VehicleGap[] {
   const { layout } = topo;
   const gap = couplingGap(layout);
@@ -81,7 +81,7 @@ export function vehicleGaps(topo: Topology, state: StationState): VehicleGap[] {
   const out: VehicleGap[] = [];
   for (const line of buildLines(topo, state.switches)) {
     const bodies = Object.values(state.vehicles)
-      .filter((v) => line.segments.some((s) => s.edge === v.pos.edge))
+      .filter((v) => !inRepair(v) && line.segments.some((s) => s.edge === v.pos.edge))
       .map((v) => ({ id: v.id, ...bodyOnLine(layout, line, v) }))
       .sort((x, y) => x.a - y.a);
     for (let i = 1; i < bodies.length; i++) {

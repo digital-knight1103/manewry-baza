@@ -2,7 +2,17 @@
 import { buildLines, fromU, lineOfEdge, nearestLine, pointAtU, toU, type TrackLine, type TrackPos } from './lines';
 import type { Topology } from './topology';
 import type { Point } from './types';
-import { bodyOnLine, couplingGap, EPS, nextVehicleId, vehicleLength, type StationState, type Vehicle } from './vehicles';
+import {
+  bodyOnLine,
+  couplingGap,
+  EPS,
+  inRepair,
+  mayOverlap,
+  nextVehicleId,
+  vehicleLength,
+  type StationState,
+  type Vehicle,
+} from './vehicles';
 
 /** Max distance (schematic units) from a track at which a dropped vehicle still lands on it. */
 export const DROP_RADIUS = 30;
@@ -181,13 +191,13 @@ export interface DragRange {
   hi: number;
 }
 
-/** How far the consist containing `id` can be shifted along its line without collisions. */
+/** How far the consist containing `id` can be shifted along its line without collisions; null when it cannot move (wagon in repair). */
 export function dragRange(topo: Topology, state: StationState, id: string): DragRange | null {
   const v = state.vehicles[id];
   if (!v) return null;
   const line = lineOfEdge(buildLines(topo, state.switches), v.pos.edge);
   const group = consistOf(state, id);
-  if (!group.every((g) => onLine(line, state.vehicles[g]!))) return null;
+  if (!group.every((g) => onLine(line, state.vehicles[g]!) && !inRepair(state.vehicles[g]))) return null;
   const own = group.map((g) => bodyOnLine(topo.layout, line, state.vehicles[g]!));
   const gMin = Math.min(...own.map((b) => b.a));
   const gMax = Math.max(...own.map((b) => b.b));
@@ -195,6 +205,7 @@ export function dragRange(topo: Topology, state: StationState, id: string): Drag
   let lo = -gMin;
   let hi = line.length - gMax;
   for (const o of bodies(topo, state, line, new Set(group))) {
+    if (mayOverlap(topo.layout, state, id, o.id)) continue;
     if (o.b <= gMin + EPS) lo = Math.max(lo, o.b + gap - gMin);
     else if (o.a >= gMax - EPS) hi = Math.min(hi, o.a - gap - gMax);
   }
@@ -228,12 +239,24 @@ export function settleConsist(topo: Topology, state: StationState, id: string, o
   return opts.autoCouple ? coupleTouching(topo, moved, consistOf(moved, id)) : moved;
 }
 
-/** Vehicles directly before/after `id` along its line whose bodies touch it (gap ≈ coupling gap). */
+/** True while `id` stands (partly) under a wagon in repair, i.e. a shunter driving under it. */
+export function underRepairWagon(topo: Topology, state: StationState, id: string): boolean {
+  const v = state.vehicles[id];
+  if (!v || inRepair(v)) return false;
+  const line = lineOfEdge(buildLines(topo, state.switches), v.pos.edge);
+  const own = bodyOnLine(topo.layout, line, v);
+  return bodies(topo, state, line).some((o) => inRepair(state.vehicles[o.id]) && o.a < own.b - EPS && o.b > own.a + EPS);
+}
+
+/**
+ * Vehicles directly before/after `id` along its line whose bodies touch it (gap ≈ coupling gap).
+ * A wagon in repair touches nothing: it cannot be coupled.
+ */
 export function touchingNeighbours(topo: Topology, state: StationState, id: string): string[] {
   const v = state.vehicles[id];
-  if (!v) return [];
+  if (!v || inRepair(v)) return [];
   const line = lineOfEdge(buildLines(topo, state.switches), v.pos.edge);
-  const all = bodies(topo, state, line);
+  const all = bodies(topo, state, line).filter((b) => !inRepair(state.vehicles[b.id]));
   const i = all.findIndex((b) => b.id === id);
   const gap = couplingGap(topo.layout);
   const out: string[] = [];
@@ -250,9 +273,13 @@ export const areCoupled = (state: StationState, a: string, b: string): boolean =
     return i >= 0 && (c[i - 1] === b || c[i + 1] === b);
   });
 
-/** Couples two touching vehicles at the ends of their consists. Returns the state unchanged otherwise. */
+/**
+ * Couples two touching vehicles at the ends of their consists. Returns the state unchanged otherwise,
+ * also for a wagon in repair and a shunter standing under one.
+ */
 export function couple(topo: Topology, state: StationState, a: string, b: string): StationState {
   if (areCoupled(state, a, b) || !touchingNeighbours(topo, state, a).includes(b)) return state;
+  if (underRepairWagon(topo, state, a) || underRepairWagon(topo, state, b)) return state;
   // Keep consists in ascending line order: `a` is the one with the lower coordinate.
   const line = lineOfEdge(buildLines(topo, state.switches), state.vehicles[a]!.pos.edge);
   if (toU(line, state.vehicles[a]!.pos) > toU(line, state.vehicles[b]!.pos)) [a, b] = [b, a];

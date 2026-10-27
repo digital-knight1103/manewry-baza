@@ -48,6 +48,15 @@ Rysunki referencyjne: `docs/img/*.png` — wygląd aplikacji ma być do nich zbl
 - kryteria akceptacji z `docs/SPEC.md` (rozdz. 13) dla danego etapu spełnione,
 - README zaktualizowane, jeśli zmieniło się użycie aplikacji.
 
+## Stan projektu
+- Etapy E1–E7 gotowe (edycja, jazda, scenariusze, prezentacja, wygląd dla zarządu).
+- Status wagonu „Naprawa” (`src/engine/repair.ts`): wagon podniesiony na podnośnikach nad kanałem
+  rewizyjnym (tor 69). Status w `Vehicle.status` (także w `InitialState`), definicja koloru i nazwy
+  w `station.json` → `vehicleStatuses`; shunter ma `passesUnderRepair` – sam (bez wagonów)
+  przejeżdża pod takim wagonem (`mayOverlap` w `vehicles.ts`). Akcja scenariusza `setStatus`.
+- Scenariusz przykładowy ma 6 kroków; krok 6 „Etap 2 – naprawa wagonu” – shunter przejeżdża pod
+  R1 i wyjeżdża na tor 67 przez X1 (stan „skrzyżowanie”) bez problemów.
+
 ## Otwarte założenia (patrz SPEC rozdz. 15)
 Połączenie w punkcie `X1` (przecięcie łącznika z torem 67) przyjęto jako rozjazd pozwalający
 wjechać z łącznika na tor 67/69 (do hali). Jeśli w rzeczywistości jest tam tylko skrzyżowanie,

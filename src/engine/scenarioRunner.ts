@@ -15,6 +15,8 @@ export const DRIVE_SPEED = 40;
 export const SWITCH_MS = 700;
 /** Pause after coupling / uncoupling. */
 export const COUPLING_MS = 500;
+/** Wagon body rising onto / lowering from the jacks (matches the drawing animation). */
+export const LIFT_MS = 500;
 /** Pause around a consist entering or leaving the station. */
 export const STATION_MS = 600;
 
@@ -73,6 +75,8 @@ export function animateAction(topo: Topology, state: StationState, action: Actio
       return { ...base, durationMs: STATION_MS, highlight: { vehicles: action.vehicles.map((v) => v.id), edges: [] } };
     case 'remove':
       return { ...base, durationMs: STATION_MS, highlight: { vehicles: [...action.vehicles], edges: [] } };
+    case 'setStatus':
+      return { ...base, durationMs: LIFT_MS };
     case 'wait':
       return { ...base, durationMs: Math.max(0, action.ms) };
     case 'highlight':

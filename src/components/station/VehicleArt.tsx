@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ArtKind } from './artKind';
 import { ACCENT, OUTLINE_COLOR } from './style';
 
@@ -15,6 +16,10 @@ const FRAME_COLOR = '#2b3440';
 const WHEEL_COLOR = '#1f2937';
 const SPOKE_COLOR = '#aab4c0';
 const SHADOW = { dx: 1.2, dy: 1.8, opacity: 0.16 };
+/** How high a wagon in repair is lifted on the jacks; floor of the hall = bottom of the wheels. */
+export const LIFT_HEIGHT = 8;
+const FLOOR_Y = WHEEL_Y + WHEEL_R;
+const JACK_COLOR = '#37474f';
 
 export interface ArtProps {
   kind: ArtKind;
@@ -26,6 +31,8 @@ export interface ArtProps {
   facing?: 1 | -1;
   /** Direction of travel: head light at that end, tail light at the other; 0 = lights off. */
   light?: 1 | -1 | 0;
+  /** Wagons: 0 = on its bogies, 1 = lifted on four jacks without bogies (repair); between = animating. */
+  lift?: number;
 }
 
 function Wheel({ x, y = WHEEL_Y, r = WHEEL_R, angle }: { x: number; y?: number; r?: number; angle: number }) {
@@ -62,6 +69,38 @@ function Buffers({ half }: { half: number }) {
   );
 }
 
+/** Four jacks standing on the hall floor, carrying a body whose underside is at `bottom`. */
+function Jacks({ half, bottom, opacity }: { half: number; bottom: number; opacity: number }) {
+  const xs = [-(half - 3), -(half - 9.5), half - 9.5, half - 3];
+  return (
+    <g opacity={opacity} pointerEvents="none">
+      {xs.map((x) => (
+        <g key={x}>
+          <rect x={x - 0.9} y={bottom} width={1.8} height={FLOOR_Y - bottom} fill={JACK_COLOR} />
+          <rect x={x - 1.8} y={bottom - 0.2} width={3.6} height={1.1} rx={0.3} fill={ACCENT} />
+          <rect x={x - 2.2} y={FLOOR_Y - 0.9} width={4.4} height={1.2} rx={0.3} fill={JACK_COLOR} />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/**
+ * Wagon art that can be lifted for repair: the bogies fade out and the body (`children`, with its
+ * shadow and buffers) rises onto the jacks.
+ */
+function Liftable({ half, lift, bogies, children }: { half: number; lift: number; bogies: ReactNode; children: ReactNode }) {
+  if (lift <= 0) return <g>{bogies}{children}</g>;
+  const dy = -LIFT_HEIGHT * lift;
+  return (
+    <g>
+      {lift < 1 && <g opacity={1 - lift}>{bogies}</g>}
+      <Jacks half={half} bottom={BODY_BOTTOM + dy} opacity={Math.min(1, lift * 3)} />
+      <g transform={`translate(0 ${dy.toFixed(2)})`}>{children}</g>
+    </g>
+  );
+}
+
 function Shadow({ x, y, w, h, rx = 2 }: { x: number; y: number; w: number; h: number; rx?: number }) {
   return <rect x={x + SHADOW.dx} y={y + SHADOW.dy} width={w} height={h} rx={rx} fill="#0b1b2b" opacity={SHADOW.opacity} />;
 }
@@ -79,16 +118,20 @@ function Lights({ half, light }: { half: number; light: 1 | -1 | 0 }) {
   );
 }
 
-function Wagon({ length, color, wheelAngle = 0 }: ArtProps) {
+function Wagon({ length, color, wheelAngle = 0, lift = 0 }: ArtProps) {
   const half = length / 2;
   const bogieX = half - 6.5;
   const w = length - 1.6;
-  return (
-    <g>
-      <Shadow x={-half + 0.8} y={BODY_TOP} w={w} h={BODY_BOTTOM - BODY_TOP + 4} />
-      <Buffers half={half} />
+  const bogies = (
+    <>
       <Bogie x={-bogieX} angle={wheelAngle} />
       <Bogie x={bogieX} angle={wheelAngle} />
+    </>
+  );
+  return (
+    <Liftable half={half} lift={lift} bogies={bogies}>
+      <Shadow x={-half + 0.8} y={BODY_TOP} w={w} h={BODY_BOTTOM - BODY_TOP + 4} />
+      <Buffers half={half} />
       <rect x={-half + 0.8} y={BODY_TOP} width={w} height={BODY_BOTTOM - BODY_TOP} rx={2.2} fill={color} stroke={OUTLINE_COLOR} strokeWidth={0.9} />
       {/* roof highlight and sliding door */}
       <line x1={-half + 2.6} y1={BODY_TOP + 1.6} x2={half - 2.6} y2={BODY_TOP + 1.6} stroke="#ffffff" strokeOpacity={0.35} strokeWidth={1} />
@@ -96,21 +139,25 @@ function Wagon({ length, color, wheelAngle = 0 }: ArtProps) {
         <line x1={-4.5} y1={BODY_TOP + 2.6} x2={-4.5} y2={BODY_BOTTOM - 1} />
         <line x1={4.5} y1={BODY_TOP + 2.6} x2={4.5} y2={BODY_BOTTOM - 1} />
       </g>
-    </g>
+    </Liftable>
   );
 }
 
-function Platform({ length, color, wheelAngle = 0 }: ArtProps) {
+function Platform({ length, color, wheelAngle = 0, lift = 0 }: ArtProps) {
   const half = length / 2;
   const deckTop = -1.5;
   const sets = Math.max(1, Math.floor((length - 8) / 12));
   const step = (length - 10) / sets;
-  return (
-    <g>
-      <Shadow x={-half + 0.8} y={-9} w={length - 1.6} h={15} />
-      <Buffers half={half} />
+  const bogies = (
+    <>
       <Bogie x={-(half - 6.5)} angle={wheelAngle} />
       <Bogie x={half - 6.5} angle={wheelAngle} />
+    </>
+  );
+  return (
+    <Liftable half={half} lift={lift} bogies={bogies}>
+      <Shadow x={-half + 0.8} y={-9} w={length - 1.6} h={15} />
+      <Buffers half={half} />
       <rect x={-half + 0.8} y={deckTop} width={length - 1.6} height={BODY_BOTTOM - deckTop + 0.4} rx={1.4} fill={color} stroke={OUTLINE_COLOR} strokeWidth={0.9} />
       {/* wheelsets carried on the deck */}
       {Array.from({ length: sets }, (_, i) => {
@@ -123,7 +170,7 @@ function Platform({ length, color, wheelAngle = 0 }: ArtProps) {
           </g>
         );
       })}
-    </g>
+    </Liftable>
   );
 }
 

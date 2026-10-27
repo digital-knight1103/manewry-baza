@@ -4,6 +4,7 @@ import { vehicleType } from '../engine/vehicles';
 import { useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
 import { Icon } from './icons';
+import { RepairControls } from './RepairControls';
 
 const DIRECTIONS: { id: FillDirection; label: string }[] = [
   { id: 'auto', label: 'do najbliższego końca toru' },
@@ -89,7 +90,7 @@ function SelectedVehicle() {
   const topo = useStationStore((s) => s.topo);
   const state = useStationStore((s) => s.state);
   const selectedId = useStationStore((s) => s.selectedId);
-  const { removeVehicle, setNumber, couple, uncouple } = useStationStore.getState();
+  const { removeVehicle, setNumber, couple, uncouple, setStatus } = useStationStore.getState();
   const v = selectedId ? state.vehicles[selectedId] : undefined;
 
   if (!v) {
@@ -144,6 +145,7 @@ function SelectedVehicle() {
         </ul>
         {consist.length > 1 && <p className="muted">Skład: {consist.join(' – ')}</p>}
       </div>
+      <RepairControls vehicleId={v.id} onSetStatus={setStatus} />
       <button type="button" className="danger" onClick={() => removeVehicle(v.id)}>
         <Icon name="trash" /> Usuń (Del)
       </button>

@@ -81,6 +81,9 @@
     { "id": "wagon_zdrowy", "idPrefix": "Z", "name": "Wagon zdrowy",                    "color": "#CDE8F6", "lengthM": 15 },
     { "id": "platforma",    "idPrefix": "PL", "name": "Platforma z zestawami",           "color": "#F2AA84", "lengthM": 30 },
     { "id": "lokomotywa",   "idPrefix": "LOK", "name": "Lokomotywa",                      "color": "#4CD964", "lengthM": 25, "powered": true },
-    { "id": "shunter",      "idPrefix": "SH", "name": "Shunter",                         "color": "#4CD964", "lengthM": 3,  "powered": true, "maxWagons": 4 }
+    { "id": "shunter",      "idPrefix": "SH", "name": "Shunter",                         "color": "#4CD964", "lengthM": 3,  "powered": true, "maxWagons": 4, "passesUnderRepair": true }
+  ],
+  "vehicleStatuses": [
+    { "id": "naprawa", "name": "Wagon w naprawie (podniesiony)", "color": "#C62828", "afterType": "wagon_zdrowy" }
   ]
 }

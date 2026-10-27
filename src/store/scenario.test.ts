@@ -1,6 +1,7 @@
 // Scenario mode on the stores: playback of the built-in scenario and recording manoeuvres done in drive mode.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runScenario } from '../engine/scenario';
+import { stateFromInitial } from '../engine/vehicles';
 import { useAppStore } from './useAppStore';
 import { useDriveStore } from './useDriveStore';
 import { captionStepIndex, scenarioViewState, useScenarioStore } from './useScenarioStore';
@@ -27,7 +28,7 @@ describe('tryb Scenariusz – odtwarzanie', () => {
     expect(scn().isReadOnly(BUILT_IN_ID)).toBe(true);
     expect(scn().run.error).toBeUndefined();
     scn().addStep('nie wolno');
-    expect(scn().active()!.steps).toHaveLength(5);
+    expect(scn().active()!.steps).toHaveLength(6);
     expect(st().message).toMatch(/tylko do odczytu/);
   });
 
@@ -46,7 +47,7 @@ describe('tryb Scenariusz – odtwarzanie', () => {
     scn().play();
     expect(captionStepIndex(scn())).toBe(0);
     runFrames();
-    expect(scn().position).toBe(5);
+    expect(scn().position).toBe(6);
     expect(scn().playback).toBeNull();
     expect(scenarioViewState(scn())).toEqual(scn().run.state);
     expect(scenarioViewState(scn()).vehicles.R1!.pos.edge).toBe('e69');
@@ -93,12 +94,12 @@ describe('tryb Scenariusz – nagrywanie', () => {
   it('duplikat jest edytowalny; nowy krok i edycja opisu', () => {
     const id = scn().activeId;
     expect(scn().isReadOnly(id)).toBe(false);
-    scn().addStep('Etap 2');
-    scn().updateStep(5, { bullets: ['punkt A', 'punkt B'] });
-    scn().moveStep(5, -1);
-    expect(scn().active()!.steps[4]).toMatchObject({ title: 'Etap 2', bullets: ['punkt A', 'punkt B'], actions: [] });
-    scn().removeStep(4);
-    expect(scn().active()!.steps).toHaveLength(5);
+    scn().addStep('Etap 3');
+    scn().updateStep(6, { bullets: ['punkt A', 'punkt B'] });
+    scn().moveStep(6, -1);
+    expect(scn().active()!.steps[5]).toMatchObject({ title: 'Etap 3', bullets: ['punkt A', 'punkt B'], actions: [] });
+    scn().removeStep(5);
+    expect(scn().active()!.steps).toHaveLength(6);
   });
 
   it('manewry w trybie nagrywania zapisują się jako akcje i odtwarzają się tak samo', () => {
@@ -152,6 +153,31 @@ describe('tryb Scenariusz – nagrywanie', () => {
     for (let i = 0; i < 2000 && drive().throttle; i++) drive().driveTick(0.05);
     const actions = scn().active()!.steps[0]!.actions;
     expect(actions[actions.length - 1]).toEqual({ type: 'driveAndCouple', vehicle: 'SH1', to: 'D6' });
+    scn().stopRecording();
+  });
+
+  it('naprawa wagonu z panelu zapisuje się jako setStatus; odmowa nie zapisuje nic', () => {
+    st().commit(
+      stateFromInitial(st().topo, {
+        switches: {},
+        placements: [
+          { edge: 'e69', startOffset: 22, vehicles: [{ id: 'R1', type: 'wagon_rev' }] },
+          { edge: 'e67b', startOffset: 100, vehicles: [{ id: 'R2', type: 'wagon_rev' }] },
+        ],
+      }),
+    );
+    scn().create('Naprawa');
+    scn().startRecording();
+    drive().setStatus('R2', 'naprawa');
+    expect(st().message).toMatch(/nad kanałem rewizyjnym/);
+    drive().setStatus('R1', 'naprawa');
+    drive().setStatus('R1', null, 'wagon_zdrowy');
+    expect(st().state.vehicles.R1).toMatchObject({ type: 'wagon_zdrowy' });
+    expect(scn().active()!.steps[0]!.actions).toEqual([
+      { type: 'setStatus', vehicle: 'R1', status: 'naprawa' },
+      { type: 'setStatus', vehicle: 'R1', status: null, newType: 'wagon_zdrowy' },
+    ]);
+    expect(scn().run.error).toBeUndefined();
     scn().stopRecording();
   });
 

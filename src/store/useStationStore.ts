@@ -4,14 +4,17 @@ import { stationTopology } from '../data/station';
 import { formatCount, VEHICLE } from '../engine/counters';
 import * as edit from '../engine/edit';
 import type { TrackPos } from '../engine/lines';
+import * as repair from '../engine/repair';
 import type { Topology } from '../engine/topology';
 import {
+  inRepair,
   stateFromInitial,
   toInitialState,
   vehicleType,
   type InitialState,
   type StationState,
   type Vehicle,
+  type VehicleStatus,
 } from '../engine/vehicles';
 
 const STORAGE_KEY = 'manewry-baza:stan-stacji';
@@ -54,6 +57,8 @@ interface StationStore {
   couple: (a: string, b: string) => void;
   uncouple: (a: string, b: string) => void;
   setNumber: (id: string, number: string) => void;
+  /** Starts / ends the repair of a wagon; false (with the reason in the status bar) when refused. */
+  setStatus: (id: string, status: VehicleStatus | null, newType?: string) => boolean;
   clear: () => void;
   loadExample: () => void;
 }
@@ -152,7 +157,12 @@ export const useStationStore = create<StationStore>((set, get) => {
       set((s) => ({ selectedId: s.selectedId === id ? null : s.selectedId }));
     },
 
-    dragBy: (id, delta) => get().change(edit.moveConsist(topo, get().state, id, delta)),
+    dragBy: (id, delta) => {
+      const { state } = get();
+      if (edit.consistOf(state, id).some((x) => inRepair(state.vehicles[x])))
+        return set({ message: `${id}: wagon w naprawie – nie można go przesunąć` });
+      get().change(edit.moveConsist(topo, state, id, delta));
+    },
     endDrag: (id) => {
       get().change(edit.settleConsist(topo, get().state, id, opts()));
       get().settle();
@@ -168,6 +178,16 @@ export const useStationStore = create<StationStore>((set, get) => {
       const updated: Vehicle = { ...v, number: number.trim() };
       if (!updated.number) delete updated.number;
       get().commit({ ...s, vehicles: { ...s.vehicles, [id]: updated } });
+    },
+
+    setStatus: (id, status, newType) => {
+      const res = repair.setStatus(topo, get().state, id, status, newType);
+      if (res.error) {
+        set({ message: res.error });
+        return false;
+      }
+      get().commit(res.state, repair.statusMessage(topo, id, status, newType));
+      return true;
     },
 
     clear: () => {

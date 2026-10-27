@@ -103,6 +103,20 @@
         { "type": "driveTo", "vehicle": "SH1", "edge": "e67b", "offset": 320 },
         { "type": "highlight", "vehicles": ["R1"], "ms": 1500 }
       ]
+    },
+    {
+      "title": "Etap 2 – naprawa wagonu",
+      "bullets": [
+        "wagon podniesiony na podnośnikach nad kanałem rewizyjnym",
+        "shunter przejeżdża pod wagonem i wyjeżdża z hali na tor 67"
+      ],
+      "actions": [
+        { "type": "setStatus", "vehicle": "R1", "status": "naprawa" },
+        { "type": "highlight", "vehicles": ["R1"], "ms": 1200 },
+        { "type": "driveTo", "vehicle": "SH1", "edge": "e69", "offset": 70 },
+        { "type": "setSwitch", "switch": "X1", "state": 0 },
+        { "type": "driveTo", "vehicle": "SH1", "edge": "e67", "offset": 300 }
+      ]
     }
   ]
 }

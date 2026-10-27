@@ -10,10 +10,12 @@ import { buildLines, fromU, lineOfEdge, toU, type TrackLine } from './lines';
 import { nodesOnLine, vehiclesNearNode } from './switches';
 import type { Topology } from './topology';
 import type { StationLayout } from './types';
-import { bodyOnLine, couplingGap, EPS, vehicleType, type StationState } from './vehicles';
+import { bodyOnLine, couplingGap, EPS, inRepair, passesUnderRepair, vehicleType, type StationState } from './vehicles';
 
 /** Direction of travel relative to an edge: +1 towards its `to` node, -1 towards its `from` node. */
 export type Dir = 1 | -1;
+
+export const REPAIR_BLOCK_MESSAGE = 'Wagon w naprawie – przejazd tylko samym shunterem';
 
 export type StopReason =
   | 'bufferStop'
@@ -21,6 +23,7 @@ export type StopReason =
   | 'switchAgainst'
   | 'endOfTrack'
   | 'collision'
+  | 'repair'
   | 'blocked'
   | 'noTraction'
   | 'shunterLimit'
@@ -127,14 +130,20 @@ export function drive(
   const endEdge = (ld > 0 ? line.segments[line.segments.length - 1]! : line.segments[0]!).edge;
   candidates.push({ free: ahead(endNode.u), stop: lineEndStop(topo, endNode.node, endEdge) });
 
-  // 2. Vehicles on the same line.
+  // 2. Vehicles on the same line. A lone shunter drives under wagons in repair; anything else stops before them.
   const members = new Set(group);
+  const underRepair = passesUnderRepair(layout, state, vehicleId);
   for (const v of Object.values(state.vehicles)) {
     if (members.has(v.id) || !onLine(line, v.pos.edge)) continue;
+    const repair = inRepair(v);
+    if (repair && underRepair) continue;
     const o = bodyOnLine(layout, line, v);
     const near = ld > 0 ? o.a : o.b;
     if (ahead(near) < -EPS) continue;
-    candidates.push({ free: ahead(near) - gap, stop: { reason: 'collision', message: `Kolizja z pojazdem ${v.id}`, vehicle: v.id } });
+    const stop: Stop = repair
+      ? { reason: 'repair', message: REPAIR_BLOCK_MESSAGE, vehicle: v.id }
+      : { reason: 'collision', message: `Kolizja z pojazdem ${v.id}`, vehicle: v.id };
+    candidates.push({ free: ahead(near) - gap, stop });
   }
 
   // 3. Nodes ahead occupied by vehicles standing on another route (crossings, switch tongues).

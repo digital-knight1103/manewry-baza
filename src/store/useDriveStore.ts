@@ -15,7 +15,7 @@ import { areCoupled, consistOf, couple, removeVehicle, uncouple } from '../engin
 import { findRouteForVehicle } from '../engine/route';
 import { driveToAction } from '../engine/scenarioEdit';
 import { switchDef, toggleSwitch } from '../engine/switches';
-import { vehicleType, type StationState } from '../engine/vehicles';
+import { vehicleType, type StationState, type VehicleStatus } from '../engine/vehicles';
 import { useAppStore } from './useAppStore';
 import { useStationStore } from './useStationStore';
 
@@ -54,6 +54,8 @@ interface DriveStore {
   startRoutePick: () => void;
   cancelRoutePick: () => void;
   routeTo: (edgeId: string) => void;
+  /** Starts / ends the repair of a wagon (recorded while recording a scenario). */
+  setStatus: (id: string, status: VehicleStatus | null, newType?: string) => void;
   /** Removes the driver's consist standing at a station exit. */
   leaveStation: () => void;
   reset: () => void;
@@ -242,6 +244,12 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       for (const [id, index] of Object.entries(res.state.switches))
         if (s.state.switches[id] !== index) record({ type: 'setSwitch', switch: id, state: index });
       set({ route: routeEdges(route) });
+    },
+
+    setStatus: (id, status, newType) => {
+      stop();
+      if (!station().setStatus(id, status, newType)) return;
+      record({ type: 'setStatus', vehicle: id, status, ...(newType ? { newType } : {}) });
     },
 
     leaveStation: () => {
