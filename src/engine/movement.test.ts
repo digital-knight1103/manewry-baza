@@ -134,6 +134,61 @@ describe('4. tor 67 zachodni ↔ tor 67 wschodni / 69 przez X1=0', () => {
   });
 });
 
+describe('4a. tor 67 zachodni ↔ łącznik ↔ tor 3E przez X1=2 (rozjazd krzyżowy)', () => {
+  it('jedzie z toru 67 przez X1=2 i S2=1 na tor 3E i z powrotem', () => {
+    let s = station({ X1: 2, S2: 1 }, [{ edge: 'e67', startOffset: 300, vehicles: [loco()] }]);
+    let r = drive(topo, s, 'LOK1', 1, len('e67') - 300 + len('eD2') + 100);
+    expect(r.stop).toBeUndefined();
+    expect(edgeOf(r.state, 'LOK1')).toBe('e3E');
+    s = r.state;
+    r = drive(topo, s, 'LOK1', -1, len('eD2') + 200);
+    expect(r.stop).toBeUndefined();
+    expect(edgeOf(r.state, 'LOK1')).toBe('e67');
+  });
+
+  it('przy X1=0 skład z toru 67 jedzie prosto na tor 67 wschodni, nie na łącznik', () => {
+    const s = station({ X1: 0, S2: 1 }, [{ edge: 'e67', startOffset: 300, vehicles: [loco()] }]);
+    const r = drive(topo, s, 'LOK1', 1, 400);
+    expect(r.stop).toBeUndefined();
+    expect(edgeOf(r.state, 'LOK1')).toBe('e67b');
+  });
+
+  it('przy X1=1 skład z toru 67 zatrzymuje się przed X1', () => {
+    const s = station({ X1: 1, S2: 1 }, [{ edge: 'e67', startOffset: 300, vehicles: [loco()] }]);
+    const r = drive(topo, s, 'LOK1', 1, 400);
+    expect(r.stop).toMatchObject({ reason: 'switchAgainst', switchId: 'X1' });
+    expect(edgeOf(r.state, 'LOK1')).toBe('e67');
+  });
+
+  it('przy X1=2 łącznik od S1 i tor 67 wschodni kończą się przed X1', () => {
+    for (const edge of ['eD1', 'e67b']) {
+      const offset = edge === 'eD1' ? len('eD1') - 60 : 60;
+      const s = station({ X1: 2, S1: 1 }, [{ edge, startOffset: offset, vehicles: [loco()] }]);
+      const r = drive(topo, s, 'LOK1', edge === 'eD1' ? 1 : -1, 200);
+      expect(r.stop).toMatchObject({ reason: 'switchAgainst', switchId: 'X1' });
+      expect(edgeOf(r.state, 'LOK1')).toBe(edge);
+    }
+  });
+
+  it('findRoute z toru 67 na tor 3 ustawia X1=2 i S2=1', () => {
+    const s = station({ X1: 0, S2: 0 }, [{ edge: 'e67', startOffset: 300, vehicles: [loco()] }]);
+    const route = findRouteForVehicle(topo, s, 'LOK1', 'e3E');
+    expect(route.found).toBe(true);
+    if (!route.found) return;
+    expect(route.needsReversal).toBe(false);
+    expect(route.legs).toHaveLength(1);
+    expect(route.legs[0]).toMatchObject({ edges: ['e67', 'eD2', 'e3E'], switches: { X1: 2, S2: 1 }, dir: 1 });
+  });
+
+  it('„Ustaw drogę” + jazda: akcje setSwitch i driveTo z toru 67 na tor 3E', () => {
+    let s = station({ X1: 0, S2: 0 }, [{ edge: 'e67', startOffset: 300, vehicles: [loco(), ...rev(2)] }]);
+    s = act(s, { type: 'setSwitch', switch: 'X1', state: 2 });
+    s = act(s, { type: 'setSwitch', switch: 'S2', state: 1 });
+    s = act(s, { type: 'driveTo', vehicle: 'LOK1', edge: 'e3E', offset: 200 });
+    for (const id of ['LOK1', 'R1', 'R2']) expect(edgeOf(s, id)).toBe('e3E');
+  });
+});
+
 describe('5. tor 3 prosto przez S2=0, wyjazdy ze stacji', () => {
   it('jedzie na wschód do wyjazdu i zjeżdża ze stacji', () => {
     let s = station({ S2: 0 }, [{ edge: 'e3W', startOffset: 500, vehicles: [loco(), ...rev(2)] }]);

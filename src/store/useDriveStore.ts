@@ -14,7 +14,7 @@ import type { Action } from '../engine/actions';
 import { areCoupled, consistOf, couple, removeVehicle, uncouple } from '../engine/edit';
 import { findRouteForVehicle } from '../engine/route';
 import { driveToAction } from '../engine/scenarioEdit';
-import { switchDef, toggleSwitch } from '../engine/switches';
+import { setSwitch, switchDef, toggleSwitch, type SwitchResult } from '../engine/switches';
 import { vehicleType, type StationState, type VehicleStatus } from '../engine/vehicles';
 import { useAppStore } from './useAppStore';
 import { useStationStore } from './useStationStore';
@@ -49,6 +49,8 @@ interface DriveStore {
   driveTick: (dt: number) => void;
   setSpeed: (speed: number) => void;
   toggleSwitch: (switchId: string) => void;
+  /** Sets a switch to a chosen state (menu of a switch with more than two states). */
+  setSwitch: (switchId: string, stateIndex: number) => void;
   /** Click on the gap between two touching vehicles: uncouple if coupled, otherwise couple. */
   toggleCoupling: (a: string, b: string) => void;
   startRoutePick: () => void;
@@ -87,6 +89,18 @@ export const useDriveStore = create<DriveStore>((set, get) => {
       driverId: driverId && vehicles[driverId] ? driverId : null,
       inspectedId: inspectedId && vehicles[inspectedId] ? inspectedId : null,
     });
+  };
+
+  /** Commits and records a thrown switch; an unchanged state is a no-op. */
+  const applySwitch = (switchId: string, res: SwitchResult) => {
+    const s = station();
+    if (res.error) return s.setMessage(res.error);
+    if (res.state === s.state) return;
+    const sw = switchDef(s.topo, switchId);
+    const index = res.state.switches[switchId]!;
+    s.commit(res.state, `Rozjazd ${switchId}: ${sw.states[index]!.name}`);
+    record({ type: 'setSwitch', switch: switchId, state: index });
+    set({ route: null });
   };
 
   /** A finished drive becomes one recorded action: driveTo the stopping point, or driveAndCouple. */
@@ -183,16 +197,9 @@ export const useDriveStore = create<DriveStore>((set, get) => {
 
     setSpeed: (speed) => set({ speed: Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed)) }),
 
-    toggleSwitch: (switchId) => {
-      const s = station();
-      const res = toggleSwitch(s.topo, s.state, switchId);
-      if (res.error) return s.setMessage(res.error);
-      const sw = switchDef(s.topo, switchId);
-      const index = res.state.switches[switchId]!;
-      s.commit(res.state, `Rozjazd ${switchId}: ${sw.states[index]!.name}`);
-      record({ type: 'setSwitch', switch: switchId, state: index });
-      set({ route: null });
-    },
+    toggleSwitch: (switchId) => applySwitch(switchId, toggleSwitch(station().topo, station().state, switchId)),
+
+    setSwitch: (switchId, stateIndex) => applySwitch(switchId, setSwitch(station().topo, station().state, switchId, stateIndex)),
 
     toggleCoupling: (a, b) => {
       const s = station();

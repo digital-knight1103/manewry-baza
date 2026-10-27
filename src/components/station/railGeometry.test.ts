@@ -71,4 +71,11 @@ describe('bladeEdges', () => {
     expect(bladeEdges(sw, 0)).toEqual(['straight']);
     expect(bladeEdges(sw, 1)).toEqual(['branch']);
   });
+
+  it('shows each of the three states of the slip switch X1 differently', () => {
+    const x1 = stationLayout.switches.find((s) => s.id === 'X1')!;
+    expect(bladeEdges(x1, 0)).toEqual(['e67', 'e67b', 'eD1', 'eD2']);
+    expect(bladeEdges(x1, 1)).toEqual(['eD1', 'e67b']);
+    expect(bladeEdges(x1, 2)).toEqual(['e67', 'eD2']);
+  });
 });

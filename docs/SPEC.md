@@ -47,8 +47,12 @@ tor 3 (W) ───────────S2───────────�
 ```
 - **S1**: z toru 63 prosto na tor 65 albo w łącznik.
 - **S2**: z toru 3 (część wschodnia) prosto na tor 3 (zachód) albo w łącznik.
-- **X1**: stan „prosto” = skrzyżowanie (tor 67 ↔ tor 67 oraz łącznik ↔ łącznik jednocześnie);
-  stan „na 67/69” = łącznik → tor 67 w stronę hali. (Założenie do weryfikacji — rozdz. 15.)
+- **X1**: rozjazd krzyżowy (przecięcie łącznika z torem 67) o trzech stanach:
+  0 „prosto” = tor 67 ↔ tor 67 oraz łącznik ↔ łącznik jednocześnie;
+  1 = łącznik od S1 → tor 67 w stronę hali (tor 67/69);
+  2 = tor 67 (część zachodnia) → łącznik w stronę S2 (tor 3).
+  Numeracja stanów jest stała (używają jej scenariusze). Rozjazd o więcej niż dwóch stanach
+  przestawia się z menu z nazwami stanów, a nie kolejnymi kliknięciami.
 - **Hala**: prostokąt w kolorze #FBE3D6 z szarym kanałem rewizyjnym; tor 69 wchodzi do hali.
 - Końce torów 63, 65, 67 (W), 69 — kozły oporowe. Końce toru 3 — wyjazdy ze stacji (wahadło):
   tam pojazdy mogą wjechać na stację i z niej zjechać.
@@ -140,7 +144,7 @@ Wymagane testy (Vitest) — minimum:
 - przejazd przez S1 prosto i w łącznik; zatrzymanie przed źle ustawionym rozjazdem,
 - kozioł oporowy, kolizja + auto-sprzęgnięcie, rozprzęgnięcie,
 - limit wagonów shuntera, blokada przełożenia zajętego rozjazdu,
-- przejazd składu przez X1 w obu stanach,
+- przejazd składu przez X1 we wszystkich trzech stanach (w tym tor 67 → łącznik → tor 3),
 - odtworzenie scenariusza przykładowego od początku do końca bez błędów i stan końcowy:
   wagon R1 w hali na torze 69.
 
@@ -266,7 +270,9 @@ Edytor układu torów w aplikacji (układ zmienia się w `station.json`), logowa
 wielu użytkowników naraz, wersja mobilna, rzeczywista fizyka (hamowanie, masy).
 
 ## 15. Otwarte pytania (do potwierdzenia z zamawiającym)
-1. Punkt X1: czy z łącznika można wjechać na tor 67/69 (rozjazd), czy to tylko skrzyżowanie?
+1. ~~Punkt X1: czy z łącznika można wjechać na tor 67/69 (rozjazd), czy to tylko skrzyżowanie?~~
+   Rozstrzygnięte: X1 to rozjazd krzyżowy – oprócz jazdy prosto pozwala przejechać łukiem
+   z łącznika (od S1) na tor 67/69 oraz z toru 67 (zachód) na łącznik do S2 (tor 3).
 2. Gdzie dokładnie zaczyna się tor 69 (granica 67/69)? Przyjęto: wjazd do hali.
 3. Czy tor 3 po obu stronach to wyjazd do stacji (wahadło)?
 4. Rzeczywiste długości wagonów, platformy i shuntera; maksymalna liczba wagonów dla shuntera.

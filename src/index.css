@@ -408,6 +408,58 @@ label.checkbox {
   fill: #ffe082;
 }
 
+.switch-menu {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.switch-menu-title {
+  padding: 4px 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.switch-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.switch-menu button:hover,
+.switch-menu button:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.switch-menu button.current {
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--accent-soft);
+}
+
+.switch-menu-mark {
+  width: 12px;
+  color: var(--accent-strong);
+}
+
 .station-svg .gap-target.coupled {
   /* Scissors: clicking the gap uncouples. */
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ctext x='2' y='19' font-size='18'%3E%E2%9C%82%3C/text%3E%3C/svg%3E") 12 12, crosshair;

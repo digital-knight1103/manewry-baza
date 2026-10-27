@@ -30,7 +30,8 @@ Schematyczny to kolorowe prostokąty jak na rysunkach w `docs/img/`. Wybór zapa
 dotyczy też prezentacji. Kolory w obu widokach pochodzą z legendy (`station.json`).
 
 Na schemacie rozjazdy mają iglicę (bursztynowy klin) wskazującą ustawiony kierunek, a nieużywana
-gałąź ma przerwę w szynach. Ślepe końce torów kończą kozły oporowe, końce toru 3 – strzałki
+gałąź ma przerwę w szynach. Na rozjeździe krzyżowym X1 iglice tworzą krzyż (obie drogi proste)
+albo wskazują jeden łuk. Ślepe końce torów kończą kozły oporowe, końce toru 3 – strzałki
 „do stacji”.
 
 | Tryb | Do czego służy |
@@ -104,8 +105,10 @@ Pilot do prezentacji wysyła PageUp / PageDown, więc działa bez konfiguracji.
 - **Jazda:** przytrzymaj ◀ / ▶ w panelu albo klawisze **←** / **→**. Skład jedzie, dopóki
   trzymasz. Kierunek jest ekranowy: na łączniku ◀ = w górę-lewo, ▶ = w dół-prawo.
   Suwak ustawia prędkość animacji.
-- **Rozjazdy:** kliknięcie kółka S1 / X1 / S2 przestawia rozjazd na następny stan; aktywna droga
-  jest podświetlona. Zajętego rozjazdu nie da się przełożyć.
+- **Rozjazdy:** kliknięcie kółka S1 / S2 przestawia rozjazd na drugi stan. X1 to rozjazd krzyżowy
+  o trzech stanach – kliknięcie otwiera menu: „prosto (tor 67 i łącznik)”, „łącznik od S1 → tor
+  67/69 (hala)”, „tor 67 → łącznik do S2 (tor 3)” (Esc lub kliknięcie obok zamyka menu).
+  Aktywna droga jest podświetlona. Zajętego rozjazdu nie da się przełożyć.
 - **Ustaw drogę:** wybierz pojazd, kliknij „Ustaw drogę”, a potem tor docelowy. Aplikacja ustawi
   rozjazdy i podświetli drogę. Jeśli po drodze trzeba zmienić kierunek, pasek stanu podpowie,
   gdzie to zrobić i które rozjazdy przestawić.
@@ -204,8 +207,8 @@ układu jest też w [`docs/station.json`](docs/station.json).
 ## Założenia do potwierdzenia
 Przyjęte w aplikacji, do potwierdzenia z zamawiającym (SPEC rozdz. 15):
 
-1. **Punkt X1:** przyjęto, że to rozjazd i z łącznika można wjechać na tor 67/69 (do hali).
-   Jeśli w rzeczywistości jest tam tylko skrzyżowanie, zmienia się to wyłącznie w `station.json`.
+1. **Punkt X1:** potwierdzone – rozjazd krzyżowy: prosto, łącznik od S1 → tor 67/69 (hala)
+   albo tor 67 → łącznik do S2 (tor 3).
 2. **Granica torów 67/69:** przyjęto, że tor 69 zaczyna się na wjeździe do hali.
 3. **Tor 3:** przyjęto, że po obu stronach prowadzi do stacji (wahadło).
 4. **Długości taboru:** przyjęto wagon 15 m, platformę 30 m, lokomotywę 25 m, shunter 3 m;

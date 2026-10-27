@@ -163,4 +163,16 @@ describe('tryb Jazda – przebieg z rysunków 02–04', () => {
     drive().undo();
     expect(st().state).toBe(afterDrive);
   });
+
+  it('rozjazd krzyżowy X1: wybór stanu z menu (setSwitch) i jedno cofnięcie', () => {
+    const start = st().state;
+    drive().setSwitch('X1', 2);
+    expect(switchState('X1')).toBe(2);
+    expect(st().message).toBe('Rozjazd X1: tor 67 → łącznik do S2 (tor 3)');
+    const afterThrow = st().state;
+    drive().setSwitch('X1', 2); // ten sam stan – bez zmian i bez wpisu w historii
+    expect(st().state).toBe(afterThrow);
+    drive().undo();
+    expect(st().state).toBe(start);
+  });
 });

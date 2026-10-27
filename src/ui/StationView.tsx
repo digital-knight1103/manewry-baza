@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { StationSvg } from '../components/station/StationSvg';
 import { VehicleGhost } from '../components/station/Vehicles';
 import { vehicleGaps } from '../engine/control';
@@ -10,6 +10,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useDriveStore } from '../store/useDriveStore';
 import { captionStepIndex, scenarioViewState, useScenarioStore } from '../store/useScenarioStore';
 import { useStationStore } from '../store/useStationStore';
+import { SwitchMenu } from './SwitchMenu';
 
 /** Pointer travel (screen px) below which a press on a vehicle counts as a click, not a drag. */
 const DRAG_THRESHOLD_PX = 4;
@@ -52,6 +53,23 @@ export function StationView() {
   const pickingRoute = useDriveStore((s) => s.pickingRoute);
   const gaps = useMemo(() => (driving ? vehicleGaps(topo, state) : []), [driving, topo, state]);
   const [paletteDrag, setPaletteDrag] = useState<PaletteDrag | null>(null);
+  const [switchMenu, setSwitchMenu] = useState<{ id: string; left: number; top: number } | null>(null);
+  const closeSwitchMenu = useCallback(() => setSwitchMenu(null), []);
+
+  /** Two-state switches flip on click; with more states a menu lists them by name. */
+  const onSwitchClick = (switchId: string) => {
+    const sw = topo.layout.switches.find((s) => s.id === switchId)!;
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (sw.states.length <= 2 || !svg?.parentElement || !ctm) {
+      setSwitchMenu(null);
+      return useDriveStore.getState().toggleSwitch(switchId);
+    }
+    const node = topo.nodes.get(sw.node)!;
+    const p = new DOMPoint(node.x, node.y).matrixTransform(ctm);
+    const box = svg.parentElement.getBoundingClientRect();
+    setSwitchMenu({ id: switchId, left: p.x - box.left + 12, top: p.y - box.top + 12 });
+  };
 
   const toSvgPoint = (clientX: number, clientY: number): Point => {
     const svg = svgRef.current!;
@@ -140,24 +158,37 @@ export function StationView() {
   if (playingScenario) return <ScenarioSvg />;
 
   if (driving) {
+    const menuSwitch = switchMenu && topo.layout.switches.find((s) => s.id === switchMenu.id);
     return (
-      <StationSvg
-        ref={svgRef}
-        className="driving"
-        topo={topo}
-        state={state}
-        selectedId={driverExists ? driverId : null}
-        driverArrow={driverExists ? { id: driverId, side } : null}
-        onVehiclePointerDown={(id, e) => {
-          e.stopPropagation();
-          drive.clickVehicle(id);
-        }}
-        onSwitchClick={drive.toggleSwitch}
-        routeEdges={route}
-        gaps={gaps}
-        onGapClick={drive.toggleCoupling}
-        onEdgePick={pickingRoute ? drive.routeTo : undefined}
-      />
+      <>
+        <StationSvg
+          ref={svgRef}
+          className="driving"
+          topo={topo}
+          state={state}
+          selectedId={driverExists ? driverId : null}
+          driverArrow={driverExists ? { id: driverId, side } : null}
+          onVehiclePointerDown={(id, e) => {
+            e.stopPropagation();
+            drive.clickVehicle(id);
+          }}
+          onSwitchClick={onSwitchClick}
+          routeEdges={route}
+          gaps={gaps}
+          onGapClick={drive.toggleCoupling}
+          onEdgePick={pickingRoute ? drive.routeTo : undefined}
+        />
+        {menuSwitch && (
+          <SwitchMenu
+            sw={menuSwitch}
+            current={state.switches[menuSwitch.id] ?? menuSwitch.default}
+            left={switchMenu.left}
+            top={switchMenu.top}
+            onPick={(index) => drive.setSwitch(menuSwitch.id, index)}
+            onClose={closeSwitchMenu}
+          />
+        )}
+      </>
     );
   }
 

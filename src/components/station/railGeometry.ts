@@ -87,10 +87,15 @@ export function bandOutline(points: Point[], halfWidth: number): Point[] {
 
 /**
  * Edges the blades of the active state point along: of each connected pair the edge used by
- * fewer states (the branch, not the common trunk); on a tie the second one.
+ * fewer states (the branch, not the common trunk); on a tie both (slip switch X1: both straights
+ * in state 0 give a cross, a curve gives two blades along it).
  */
 export function bladeEdges(sw: SwitchDef, stateIndex: number): string[] {
   const uses = new Map<string, number>();
   for (const s of sw.states) for (const e of new Set(s.connections.flat())) uses.set(e, (uses.get(e) ?? 0) + 1);
-  return (sw.states[stateIndex]?.connections ?? []).map(([a, b]) => ((uses.get(a) ?? 0) < (uses.get(b) ?? 0) ? a : b));
+  return (sw.states[stateIndex]?.connections ?? []).flatMap(([a, b]) => {
+    const ua = uses.get(a) ?? 0;
+    const ub = uses.get(b) ?? 0;
+    return ua === ub ? [a, b] : [ua < ub ? a : b];
+  });
 }

@@ -74,5 +74,6 @@ describe('topology', () => {
     expect(states).toEqual({ S1: 0, S2: 0, X1: 0 });
     expect(activeConnections(topo, 'S1', states)).toEqual([['e63', 'e65']]);
     expect(activeConnections(topo, 'X1', { ...states, X1: 1 })).toEqual([['eD1', 'e67b']]);
+    expect(activeConnections(topo, 'X1', { ...states, X1: 2 })).toEqual([['e67', 'eD2']]);
   });
 });

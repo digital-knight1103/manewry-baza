@@ -4,7 +4,7 @@
   "scalePxPerMeter": 2.2,
   "couplingGapM": 2,
   "switchFoulingDistance": 20,
-  "_uwaga": "Współrzędne odtworzone z rysunków w docs/img. Punkt X1 – założenie: z łącznika można wjechać na tor 67/69 (do weryfikacji).",
+  "_uwaga": "Współrzędne odtworzone z rysunków w docs/img. Punkt X1 – rozjazd krzyżowy: oba przejazdy proste albo jeden z łuków (łącznik od S1 → tor 67/69, tor 67 → łącznik do S2).",
   "nodes": [
     { "id": "N63W", "x": 40,  "y": 213, "type": "bufferStop" },
     { "id": "S1",   "x": 370, "y": 213, "type": "switch" },
@@ -49,8 +49,9 @@
     {
       "id": "X1", "node": "X1", "default": 0,
       "states": [
-        { "name": "skrzyżowanie (prosto)",   "connections": [["e67", "e67b"], ["eD1", "eD2"]] },
-        { "name": "łącznik → tor 67/69",      "connections": [["eD1", "e67b"]] }
+        { "name": "prosto (tor 67 i łącznik)",         "connections": [["e67", "e67b"], ["eD1", "eD2"]] },
+        { "name": "łącznik od S1 → tor 67/69 (hala)", "connections": [["eD1", "e67b"]] },
+        { "name": "tor 67 → łącznik do S2 (tor 3)",   "connections": [["e67", "eD2"]] }
       ]
     }
   ],

@@ -54,10 +54,12 @@ Rysunki referencyjne: `docs/img/*.png` — wygląd aplikacji ma być do nich zbl
   rewizyjnym (tor 69). Status w `Vehicle.status` (także w `InitialState`), definicja koloru i nazwy
   w `station.json` → `vehicleStatuses`; shunter ma `passesUnderRepair` – sam (bez wagonów)
   przejeżdża pod takim wagonem (`mayOverlap` w `vehicles.ts`). Akcja scenariusza `setStatus`.
+- X1 to rozjazd krzyżowy o 3 stanach (numeracja stała – używają jej scenariusze): 0 prosto
+  (67↔67b i eD1↔eD2), 1 eD1 → e67b (hala), 2 e67 → eD2 (tor 3). Rozjazd z >2 stanami przestawia się
+  z menu (`src/ui/SwitchMenu.tsx`, akcja `setSwitch` w `useDriveStore`); iglice: przy remisie
+  w `bladeEdges` rysowane na obu odcinkach połączenia.
 - Scenariusz przykładowy ma 6 kroków; krok 6 „Etap 2 – naprawa wagonu” – shunter przejeżdża pod
   R1 i wyjeżdża na tor 67 przez X1 (stan „skrzyżowanie”) bez problemów.
 
 ## Otwarte założenia (patrz SPEC rozdz. 15)
-Połączenie w punkcie `X1` (przecięcie łącznika z torem 67) przyjęto jako rozjazd pozwalający
-wjechać z łącznika na tor 67/69 (do hali). Jeśli w rzeczywistości jest tam tylko skrzyżowanie,
-zmienia się to wyłącznie w `station.json`.
+Punkt `X1` jest rozstrzygnięty (rozjazd krzyżowy). Pozostałe pytania – SPEC rozdz. 15, pkt 2–5.
